@@ -1,18 +1,26 @@
-import { CreateUser } from "#/@types/user";
+import {
+  create,
+  generateForgetPasswordLink,
+  isValidPasswordResetToken,
+  sendReVerificationToken,
+  verifyEmail,
+} from "#/controllers/users";
 import { validate } from "#/middleware/validator";
-import User from "#/models/User";
-import { CreateUserSchema } from "#/utils/validationSchema";
+import {
+  CreateUserSchema,
+  TokenAndIdValidation,
+} from "#/utils/validationSchema";
+
 import { Router } from "express";
 
 const router = Router();
+router.post("/create", validate(CreateUserSchema), create);
+router.post("/verify-email", validate(TokenAndIdValidation), verifyEmail);
+router.post("/re-verify-email", sendReVerificationToken);
+router.post("/forget-password", generateForgetPasswordLink);
 router.post(
-  "/create",
-  validate(CreateUserSchema),
-  async (req: CreateUser, res) => {
-    const { email, password, name } = req.body;
-    const user = await User.create({ email, password, name });
-    res.status(201).json({ user });
-  }
+  "/verify-pass-reset-token",
+  validate(TokenAndIdValidation),
+  isValidPasswordResetToken
 );
-
 export default router;
