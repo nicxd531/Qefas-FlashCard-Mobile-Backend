@@ -1,10 +1,12 @@
 import {
   create,
   generateForgetPasswordLink,
-  isValidPasswordResetToken,
+  grantValid,
   sendReVerificationToken,
+  updatePassword,
   verifyEmail,
 } from "#/controllers/users";
+import { isValidPasswordResetToken } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
 import {
   CreateUserSchema,
@@ -21,6 +23,14 @@ router.post("/forget-password", generateForgetPasswordLink);
 router.post(
   "/verify-pass-reset-token",
   validate(TokenAndIdValidation),
-  isValidPasswordResetToken
+  isValidPasswordResetToken,
+  grantValid
 );
+router.post(
+  "/update-password",
+  validate(TokenAndIdValidation),
+  isValidPasswordResetToken,
+  updatePassword
+);
+
 export default router;

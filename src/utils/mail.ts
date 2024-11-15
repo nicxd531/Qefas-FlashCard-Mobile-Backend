@@ -3,6 +3,7 @@ import emailVerificationToken from "#/models/emailVerificationToken";
 import {
   MAILTRAP_PASSW,
   MAILTRAP_USER,
+  SIGN_IN_URL,
   VERIFICATION_EMAIL,
 } from "#/utils/variables";
 import { generateToken } from "#/utils/helper";
@@ -85,6 +86,40 @@ export const sendForgetPasswordLink = async (Options: Options) => {
       logo: "cid:logo",
       banner: "cid:forget_password",
       link,
+      btnTitle: "Reset Password",
+    }),
+    attachments: [
+      {
+        filename: "logo.png",
+        path: path.join(__dirname, "../mail/logo.png"),
+        cid: "logo",
+      },
+      {
+        filename: "forget_password.png",
+        path: path.join(__dirname, "../mail/forget_password.png"),
+        cid: "forget_password",
+      },
+    ],
+  });
+};
+export const sendPassResetSuccessEmail = async (
+  name: string,
+  email: string
+) => {
+  const transport = generateMailTransporter();
+
+  const message = `we just updated your password , please sign in with the new password`;
+  //   mailtrap and nodemailer
+  transport.sendMail({
+    to: email,
+    from: VERIFICATION_EMAIL,
+    subject: "password reset successful",
+    html: generateTemplate({
+      title: "password reset successful",
+      message,
+      logo: "cid:logo",
+      banner: "cid:forget_password",
+      link: SIGN_IN_URL,
       btnTitle: "Reset Password",
     }),
     attachments: [
