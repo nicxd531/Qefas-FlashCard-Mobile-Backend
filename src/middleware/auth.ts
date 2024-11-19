@@ -12,13 +12,17 @@ export const isValidPasswordResetToken: RequestHandler = async (
   const resetToken = await passwordResetToken.findOne({
     owner: userId,
   });
-  if (!resetToken)
-    return res.status(403).json({ error: "Unauthorised access,invalid token" });
+  if (!resetToken) {
+    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    return;
+  }
 
   const matched = await resetToken.compareToken(token);
 
-  if (!matched)
-    return res.status(403).json({ error: "Unauthorised access,invalid token" });
+  if (!matched) {
+    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    return;
+  }
 
   next();
 };

@@ -10,7 +10,9 @@ import { isValidPasswordResetToken } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
 import {
   CreateUserSchema,
+  SignValidationSchema,
   TokenAndIdValidation,
+  UpdatePasswordSchema,
 } from "#/utils/validationSchema";
 
 import { Router } from "express";
@@ -28,9 +30,14 @@ router.post(
 );
 router.post(
   "/update-password",
-  validate(TokenAndIdValidation),
+  validate(UpdatePasswordSchema),
   isValidPasswordResetToken,
   updatePassword
+);
+router.post(
+  "/sign-in",
+  validate(SignValidationSchema),
+  signIn
 );
 
 export default router;

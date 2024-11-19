@@ -33,3 +33,31 @@ export const TokenAndIdValidation = yup.object().shape({
     })
     .required("invalid userId"),
 });
+
+export const UpdatePasswordSchema = yup.object().shape({
+  token: yup.string().trim().required("invalid token"),
+  userId: yup
+    .string()
+    .transform(function (value) {
+      if (this.isType(value) && isValidObjectId(value)) {
+        return value;
+      } else {
+        return "";
+      }
+    })
+    .required("invalid userId"),
+  password: yup
+    .string()
+    .trim()
+    .required("Password is missing!")
+    .min(8, "Password is too short!")
+    .matches(
+      /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#\$%\^&\*])[a-zA-Z\d!@#\$%\^&\*]+$/,
+      "Password should contain both text, characters and number"
+    ),
+});
+
+export const SignValidationSchema = yup.object().shape({
+  email: yup.string().required("Email is missing!").email("Invalid email id!"),
+  password: yup.string().trim().required("Password is missing!"),
+});
