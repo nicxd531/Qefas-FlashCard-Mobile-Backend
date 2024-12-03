@@ -6,7 +6,7 @@
     "dev": "tsnd --respawn -r tsconfig-paths/register --pretty --transpile-only ./src/index.ts",
     "build": "tsc && tsc-alias && npm run copy-images node build --output public",
     "copy-images": "if not exist public mkdir public && cp -R src/mail/images dist/mail node build public",
-    "start": "node ./dist"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "Ola Olasunkanmi",

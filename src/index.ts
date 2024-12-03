@@ -9,6 +9,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static("src/public"));
 
+app.get("*", (req, res) => {
+  res.status(404).send("Page Not Found nicx");
+});
+
 app.use("/auth", authRouter);
 const PORT = process.env.PORT || 8989;
 
