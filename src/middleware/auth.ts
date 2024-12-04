@@ -60,3 +60,17 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
   req.token = token;
   next();
 };
+
+export const isVerified: RequestHandler = (req, res, next) => {
+  if (!req.user.verified) {
+    res
+      .status(403)
+      .json({
+        error: "non verifies user",
+        message:
+          "only verified users can create cards!, please verify your account!",
+      });
+    return;
+  }
+  next();
+};

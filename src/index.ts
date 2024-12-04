@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config";
 import "./db";
 import authRouter from "./routers/auth";
+import cardsCollectionRouter from "./routers/cardsCollection";
 
 const app = express();
 // register our middleware
@@ -10,6 +11,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static("src/public"));
 
 app.use("/auth", authRouter);
+app.use("/collection", cardsCollectionRouter);
 const PORT = process.env.PORT || 8989;
 
 app.listen(PORT, () => {
