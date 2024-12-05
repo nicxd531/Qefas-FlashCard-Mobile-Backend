@@ -4,6 +4,7 @@ export interface Icards {
   question: string;
   answer: string;
   owner: ObjectId;
+  collectionId: ObjectId;
 }
 const CardSchema = new Schema<Icards>(
   {
@@ -18,6 +19,12 @@ const CardSchema = new Schema<Icards>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    collectionId: {
+      type: Schema.Types.ObjectId,
+      ref: "CardsCollection",
+      required: true,
     },
   },
   {

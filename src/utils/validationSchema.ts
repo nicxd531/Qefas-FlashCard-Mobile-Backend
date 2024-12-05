@@ -64,7 +64,7 @@ export const SignValidationSchema = yup.object().shape({
 });
 export const CardsCollectionValidationSchema = yup.object().shape({
   title: yup.string().required("Title is missing!"),
-  about: yup.string().required("About is missing!"),
+  description: yup.string().required("description is missing!"),
   category: yup
     .string()
     .oneOf(categories, "invalid category")

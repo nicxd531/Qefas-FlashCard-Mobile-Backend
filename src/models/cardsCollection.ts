@@ -15,6 +15,7 @@ export interface CardsCollectionDocument {
   category: categoriesTypes;
   cards: ObjectId[];
   correctCards: ObjectId[];
+  visibility: "private" | "public"; // This defines the accepted values for TypeScript
 }
 
 const cardsCollectionSchema = new Schema<CardsCollectionDocument>(
@@ -65,6 +66,11 @@ const cardsCollectionSchema = new Schema<CardsCollectionDocument>(
         ref: "Cards",
       },
     ],
+    visibility: {
+      type: String,
+      enum: ["private", "public"], // Only allow "private" or "public"
+      default: "private", // Default value is "private"
+    },
   },
   {
     timestamps: true,

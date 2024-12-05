@@ -3,6 +3,7 @@ import {
   createCardsCollection,
 } from "#/controllers/cardsCollection";
 import { isVerified, mustAuth } from "#/middleware/auth";
+import { isVerifiedCollection } from "#/middleware/Collection";
 import fileParser from "#/middleware/fileParser";
 import { validate } from "#/middleware/validator";
 import {
@@ -22,9 +23,10 @@ router.post(
   createCardsCollection
 );
 router.post(
-  "/create-Crads",
+  "/create-Card",
   mustAuth,
   isVerified,
+  isVerifiedCollection,
   validate(CardValidationSchema),
   CreateCard
 );
