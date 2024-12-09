@@ -79,8 +79,22 @@ export const CreateCard: RequestHandler = async (req, res) => {
       error: "missing answer or question",
       message: "question and answer is required to create card",
     });
+    return;
   }
   try {
+    const exist = await Card.findOne({
+      owner: ownerId,
+      question: question,
+      collectionId: collectionId,
+    });
+    if (exist) {
+      res.status(422).json({
+        error: "user already has the card in his collection",
+        message: "this card already exist in the collection",
+      });
+      return;
+    }
+
     const newCard = new Card({
       answer: answer,
       question: question,
@@ -94,9 +108,109 @@ export const CreateCard: RequestHandler = async (req, res) => {
         answer,
         question,
         collectionId,
+        cardId: newCard._id,
       },
     });
+    return;
   } catch (err) {
     res.status(201).json({ error: err });
+    return;
   }
+};
+
+export const updateCardsCollection: RequestHandler = async (
+  req: createCardsCollectionRequest,
+  res
+) => {
+  const { title, description, category } = req.body;
+  const ownerId = req.user.id;
+  const poster = req.files?.poster as formidable.File;
+  const { CardsCollectionId } = req.params;
+  // const test = req.params;Z
+  // console.log({ test, ownerId });
+  const newCardsCollection = await CardsCollection.findOneAndUpdate(
+    {
+      owner: ownerId,
+      _id: CardsCollectionId,
+    },
+    {
+      title,
+      description,
+      category,
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!newCardsCollection) {
+    res.status(404).json({
+      error: "Collection not found",
+      message: " collection not found ",
+    });
+    return;
+  }
+  if (poster) {
+    if (newCardsCollection.poster?.publicId) {
+      await cloudinary.uploader.destroy(newCardsCollection.poster?.publicId);
+    }
+    const posterRes = await cloudinary.uploader.upload(poster.filepath, {
+      width: 300,
+      height: 300,
+      crop: "thumb",
+      gravity: "face",
+    });
+    newCardsCollection.poster = {
+      url: posterRes.secure_url,
+      publicId: posterRes.public_id,
+    };
+    await newCardsCollection.save();
+  }
+
+  res.status(201).json({
+    collection: {
+      title,
+      description,
+      poster: newCardsCollection.poster?.url,
+      collectionId: newCardsCollection._id,
+    },
+  });
+};
+export const updateCard: RequestHandler = async (req, res) => {
+  const { answer, question, collectionId } = req.body;
+  const ownerId = req.user.id;
+  const { cardId } = req.params;
+  // const test = req.params;Z
+  // console.log({ test, ownerId });
+  const newCard = await Card.findOneAndUpdate(
+    {
+      owner: ownerId,
+      _id: cardId,
+      collectionId: collectionId,
+    },
+    {
+      answer,
+      question,
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!newCard) {
+    res.status(404).json({
+      error: "card not found",
+      message: " card not found ",
+    });
+    return;
+  }
+
+  res.status(201).json({
+    card: {
+      answer,
+      question,
+      collectionId,
+      cardId: newCard._id,
+    },
+  });
 };

@@ -2,10 +2,11 @@ import { Model, model, models, ObjectId, Schema } from "mongoose";
 import { categories, categoriesTypes } from "./cards_category";
 import { object, string } from "yup";
 
-export interface CardsCollectionDocument {
+export interface CardsCollectionDocument <T = ObjectId>{
+  _id:ObjectId,
   title: string;
   description?: string;
-  owner: ObjectId;
+  owner: T;
   poster?: {
     url: string;
     publicId: string;

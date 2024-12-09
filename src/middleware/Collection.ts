@@ -8,13 +8,11 @@ export const isVerifiedCollection: RequestHandler = async (req, res, next) => {
     if (!collectionId) {
       res.status(403).json({
         error: "no collection id",
-        message: "cards must be connected to a collection",
+        message: "Collection Id Required for this action",
       });
       return;
     }
-    const collection = await CardsCollection.findOne({
-      _id: collectionId,
-    });
+    const collection = await CardsCollection.findById(collectionId);
 
     if (!collection) {
       res.status(403).json({
@@ -27,6 +25,7 @@ export const isVerifiedCollection: RequestHandler = async (req, res, next) => {
       error: err,
       message: "internal server error",
     });
+    return;
   }
 
   next();
