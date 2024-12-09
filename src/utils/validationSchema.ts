@@ -74,3 +74,13 @@ export const CardValidationSchema = yup.object().shape({
   question: yup.string().required("Question is missing!"),
   answer: yup.string().required("Answer is missing!"),
 });
+export const newPlaylistValidationSchema = yup.object().shape({
+  title: yup.string().required("Title is missing!"),
+  resId: yup.string().transform(function (value) {
+    return this.isType(value) && isValidObjectId(value) ? value : "";
+  }),
+  visibility: yup
+    .string()
+    .oneOf(["public", "private"], "visibility must be public or private")
+    .required("visibility is missing!"),
+});

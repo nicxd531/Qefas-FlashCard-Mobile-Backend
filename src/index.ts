@@ -4,6 +4,7 @@ import "./db";
 import authRouter from "./routers/auth";
 import cardsCollectionRouter from "./routers/cardsCollection";
 import favoriteRouter from "./routers/favorite";
+import playlistRouter from "./routers/playlist";
 
 const app = express();
 // register our middleware
@@ -14,6 +15,7 @@ app.use(express.static("src/public"));
 app.use("/auth", authRouter);
 app.use("/collection", cardsCollectionRouter);
 app.use("/favorite", favoriteRouter);
+app.use("/playlist", playlistRouter);
 const PORT = process.env.PORT || 8989;
 
 app.listen(PORT, () => {
