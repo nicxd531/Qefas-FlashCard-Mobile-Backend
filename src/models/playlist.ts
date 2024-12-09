@@ -36,5 +36,5 @@ const playlistSchema = new Schema<playlistDocument>(
   }
 );
 
-const playlist = models.playlist || model("playlist", playlistSchema);
+const playlist = models.playlist || model("Playlist", playlistSchema);
 export default playlist as Model<playlistDocument>;

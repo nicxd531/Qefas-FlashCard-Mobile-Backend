@@ -1,6 +1,9 @@
-import { CreatePlaylistRequest } from "#/@types/collection";
+import {
+  CreatePlaylistRequest,
+  updatePlaylistRequest,
+} from "#/@types/collection";
 import CardsCollection from "#/models/cardsCollection";
-import playlist from "#/models/playlist";
+import Playlist from "#/models/playlist";
 import { RequestHandler } from "express";
 import { Types } from "mongoose";
 import { array } from "yup";
@@ -22,7 +25,7 @@ export const createPlaylist: RequestHandler = async (
     }
   }
 
-  const newPlaylist = new playlist({
+  const newPlaylist = new Playlist({
     title,
     owner: ownerId,
     visibility,
@@ -36,6 +39,48 @@ export const createPlaylist: RequestHandler = async (
       id: newPlaylist._id,
       title: newPlaylist.title,
       visibility: newPlaylist.visibility,
+    },
+  });
+};
+
+export const updatePlaylist: RequestHandler = async (
+  req: updatePlaylistRequest,
+  res
+) => {
+  const { id, item, title, visibility } = req.body;
+  const playlist = await Playlist.findOneAndUpdate(
+    { _id: id, owner: req.user.id },
+    { title, visibility },
+    { new: true }
+  );
+  if (!playlist) {
+    res.status(404).json({
+      error: "playlist not found!",
+      message: "playlist not found",
+    });
+    return;
+  }
+
+  if (item) {
+    const cardsCollection = await CardsCollection.findById(item);
+    if (!cardsCollection) {
+      res.status(404).json({
+        error: "cardsCollection not found!",
+        message: "cards Collection not found",
+      });
+      return;
+    }
+    // playlist.items.push(cardsCollection._id);
+    // await playlist.save();
+    await Playlist.findByIdAndUpdate(playlist._id, {
+      $addToSet: { items: item },
+    });
+  }
+  res.status(201).json({
+    playlist: {
+      id: playlist._id,
+      title: playlist.title,
+      visibility: playlist.visibility,
     },
   });
 };
