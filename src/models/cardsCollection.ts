@@ -2,8 +2,8 @@ import { Model, model, models, ObjectId, Schema } from "mongoose";
 import { categories, categoriesTypes } from "./cards_category";
 import { object, string } from "yup";
 
-export interface CardsCollectionDocument <T = ObjectId>{
-  _id:ObjectId,
+export interface CardsCollectionDocument<T = ObjectId> {
+  _id: ObjectId;
   title: string;
   description?: string;
   owner: T;
@@ -17,6 +17,7 @@ export interface CardsCollectionDocument <T = ObjectId>{
   cards: ObjectId[];
   correctCards: ObjectId[];
   visibility: "private" | "public"; // This defines the accepted values for TypeScript
+  createdAt: Date;
 }
 
 const cardsCollectionSchema = new Schema<CardsCollectionDocument>(

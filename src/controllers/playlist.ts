@@ -1,11 +1,12 @@
 import {
   CreatePlaylistRequest,
+  PopulateFavList,
   updatePlaylistRequest,
 } from "#/@types/collection";
 import CardsCollection from "#/models/cardsCollection";
 import Playlist from "#/models/playlist";
 import { RequestHandler } from "express";
-import { Types } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import { array } from "yup";
 
 export const createPlaylist: RequestHandler = async (
@@ -83,4 +84,116 @@ export const updatePlaylist: RequestHandler = async (
       visibility: playlist.visibility,
     },
   });
+};
+export const removePlaylist: RequestHandler = async (req, res) => {
+  const { playlistId, resId, all } = req.query;
+  if (!isValidObjectId(playlistId)) {
+    res
+      .status(422)
+      .json({ error: "invalid playlist id!", message: "invalid playlist id" });
+  }
+
+  if (all === "yes") {
+    const playlist = await Playlist.findOneAndDelete({
+      _id: playlistId,
+      owner: req.user.id,
+    });
+
+    if (!playlist) {
+      res.status(404).json({
+        error: "playlist not found!",
+        message: "the requested playlist does not exist",
+      });
+      return;
+    }
+  }
+  if (resId) {
+    if (!isValidObjectId(resId)) {
+      res.status(422).json({
+        error: "invalid playlist id!",
+        message: "invalid playlist id",
+      });
+    }
+    const playlist = await Playlist.findOneAndUpdate(
+      {
+        _id: playlistId,
+        owner: req.user.id,
+      },
+      {
+        $pull: { items: resId },
+      }
+    );
+
+    if (!playlist) {
+      res.status(404).json({
+        error: "playlist not found",
+        message: "requested playlist doesn't exist",
+      });
+      return;
+    }
+  }
+  res.json({
+    success: true,
+  });
+};
+export const getPlaylistByProfile: RequestHandler = async (req, res) => {
+  const {pageNo ="0",limit = "20"} = req.query as {pageNo:string,limit:string}
+  const data = await Playlist.find({
+    owner: req.user.id,
+    visibility: { $ne: "auto" },
+  })
+  .skip(parseInt(pageNo)* parseInt(limit))
+  .limit(parseInt(limit))
+  .sort("-createdAt");
+  const playlist = data.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      itemsCount: item.items.length,
+      visibility: item.visibility,
+    };
+  });
+  res.json({ playlist });
+};
+export const getCardsCollections: RequestHandler = async (req, res) => {
+ const{playlistId}=req.params;
+ if(!isValidObjectId(playlistId)){
+  res.status(422).json({error:"invalid playlist id ",
+    message:"playlistId is not valid "}
+  )
+  return
+ }
+const playlist =  await Playlist.findOne({
+  owner:req.user.id,
+  _id:playlistId
+ }).populate<{items:PopulateFavList[]}>({
+  path:"items",populate:{
+    path:"owner",
+    select:"name"
+  }
+ })
+
+ if(!playlist){
+  res.json({list:[]})
+  return
+ }
+ const collection = playlist.items.map((item)=>{
+  return{
+    id:item._id,
+    title:item.title,
+    category: item.category,
+    poster:item?.poster?.url,
+    owner:{
+      name:item.owner.name,
+      id:item.owner.id as string 
+    }
+  }
+ })
+ res.json({
+  list:{
+    id:playlist._id,
+    title:playlist.title,
+    collection
+  }
+ })
 };
