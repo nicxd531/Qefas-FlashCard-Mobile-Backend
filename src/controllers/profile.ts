@@ -5,6 +5,7 @@ import { paginationQuery } from "../@types/misc";
 import CardsCollection, {
   CardsCollectionDocument,
 } from "#/models/cardsCollection";
+import playlist from "#/models/playlist";
 
 export const updateFollower: RequestHandler = async (req, res) => {
   const { profileId } = req.params;
@@ -129,4 +130,67 @@ export const getPublicUploads: RequestHandler = async (req, res) => {
     };
   });
   res.json({ cardsCollection });
+};
+export const getPublicProfile: RequestHandler = async (req, res) => {
+  const { profileId } = req.params;
+
+  if (!isValidObjectId(profileId)) {
+    res.status(422).json({
+      error: "invalid profile id ",
+      message: "profile id is invalid",
+    });
+    return;
+  }
+  const user = await User.findById(profileId);
+  if (!user) {
+    res.status(422).json({
+      error: "user not found ",
+      message: "user not found ",
+    });
+    return;
+  }
+  res.json({
+    profile: {
+      id: user._id,
+      name: user.name,
+      followers: user.followers.length,
+      avatar: user.avatar?.url,
+    },
+  });
+};
+
+export const getPublicPlaylist: RequestHandler = async (req, res) => {
+  const { profileId } = req.params;
+  const { limit = "20", pageNo = "0" } = req.query as paginationQuery;
+
+  if (!isValidObjectId(profileId)) {
+    res.status(422).json({
+      error: "invalid profile id ",
+      message: "profile id is invalid",
+    });
+    return;
+  }
+  const Playlist = await playlist
+    .find({
+      owner: profileId,
+      visibility: "public",
+    })
+    .skip(parseInt(limit) * parseInt(pageNo))
+    .limit(parseInt(limit))
+    .sort("-createdAt");
+
+  if (!Playlist) {
+    res.status(200).json([]);
+    return;
+  }
+  res.json({
+    playlist: Playlist.map((item) => {
+      return {
+        id: item._id,
+        title: item.title,
+        itemsCount: item.items.length,
+        visibility: item.visibility,
+      };
+    }),
+  });
 };
