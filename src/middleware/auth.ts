@@ -16,14 +16,14 @@ export const isValidPasswordResetToken: RequestHandler = async (
     owner: userId,
   });
   if (!resetToken) {
-    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    res.status(403).json({ error: "unauthorized access,invalid token" });
     return;
   }
 
   const matched = await resetToken.compareToken(token);
 
   if (!matched) {
-    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    res.status(403).json({ error: "unauthorized access,invalid token" });
     return;
   }
 
@@ -35,7 +35,7 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
   const token = authorization?.split("Bearer ")[1];
 
   if (!token) {
-    res.status(403).json({ error: "Unauthorised request" });
+    res.status(403).json({ error: "unauthorized request" });
     return;
   }
 
@@ -44,7 +44,7 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
 
   const user = await User.findOne({ _id: id, tokens: token });
   if (!user) {
-    res.status(403).json({ error: "Unauthorised request!" });
+    res.status(403).json({ error: "unauthorized request!" });
     return;
   }
   req.user = {
@@ -63,13 +63,11 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
 
 export const isVerified: RequestHandler = (req, res, next) => {
   if (!req.user.verified) {
-    res
-      .status(403)
-      .json({
-        error: "non verifies user",
-        message:
-          "only verified users can create cards!, please verify your account!",
-      });
+    res.status(403).json({
+      error: "non verifies user",
+      message:
+        "only verified users can create cards!, please verify your account!",
+    });
     return;
   }
   next();

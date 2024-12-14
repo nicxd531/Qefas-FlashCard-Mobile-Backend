@@ -97,3 +97,18 @@ export const oldPlaylistValidationSchema = yup.object().shape({
     .oneOf(["public", "private"], "visibility must be public or private"),
   // .required("visibility is missing!"),
 });
+export const UpdateHistorySchema = yup.object().shape({
+  cardsCollection: yup
+    .string()
+    .transform(function (value) {
+      return this.isType(value) && isValidObjectId(value) ? value : "";
+    })
+    .required("invalid collection Id!"),
+  progress: yup.number().required("History progress is missing!!"),
+  points: yup.number(),
+  date: yup.string().transform(function (value) {
+    const date = new Date(value);
+    if (date instanceof Date) return value;
+    return "";
+  }),
+});

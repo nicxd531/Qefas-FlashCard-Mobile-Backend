@@ -10,7 +10,7 @@ export interface userDocument {
   avatar?: { url: string; publicId: string };
   backgroundCover?: { url: string; publicId: string };
   tokens: string[];
-  favourites: ObjectId[];
+  favorites: ObjectId[];
   followers: ObjectId[];
   followings: ObjectId[];
 }
@@ -49,7 +49,7 @@ const userSchema = new Schema<userDocument, {}, Methods>(
       type: Boolean,
       default: false,
     },
-    favourites: [
+    favorites: [
       {
         type: Schema.Types.ObjectId,
         ref: "Card",
