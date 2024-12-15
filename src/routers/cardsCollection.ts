@@ -1,6 +1,7 @@
 import {
   CreateCard,
   createCardsCollection,
+  getLatestCollection,
   updateCard,
   updateCardsCollection,
 } from "#/controllers/cardsCollection";
@@ -48,5 +49,6 @@ router.patch(
   validate(CardValidationSchema),
   updateCard
 );
+router.get("/latest", getLatestCollection);
 
 export default router;
