@@ -25,12 +25,10 @@ export const create: RequestHandler = async (req: CreateUser, res) => {
 
   const alreadyAUser = await User.findOne({ email });
   if (alreadyAUser) {
-    res
-      .status(409)
-      .json({
-        error: "User already exists",
-        message: "the email is already associated with an account",
-      });
+    res.status(409).json({
+      error: "User already exists",
+      message: "the email is already associated with an account",
+    });
     return;
   }
   //   create user
@@ -79,11 +77,22 @@ export const sendReVerificationToken: RequestHandler = async (req, res) => {
   // find verification token
   const user = await User.findById(userId);
   if (!isValidObjectId(user)) {
-    res.status(403).json({ error: "invalid request!" });
+    res
+      .status(403)
+      .json({ error: "invalid request!", message: "invalid request!" });
     return;
   }
   if (!user) {
-    res.status(403).json({ error: "invalid request!" });
+    res
+      .status(403)
+      .json({ error: "invalid request!", message: "user not found!" });
+    return;
+  }
+  if (user.verified) {
+    res.status(422).json({
+      error: "invalid request, account verified!",
+      message: "user is already verified!",
+    });
     return;
   }
 

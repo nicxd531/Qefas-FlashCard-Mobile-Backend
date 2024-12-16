@@ -4,6 +4,7 @@ import Favorite from "#/models/favorite";
 import { RequestHandler } from "express";
 import { isValidObjectId } from "mongoose";
 import { PopulateFavList } from "../@types/collection";
+import { paginationQuery } from "#/@types/misc";
 
 export const toggleFavorite: RequestHandler = async (req, res) => {
   const collectionId = req.query.collectionId as string;
@@ -74,34 +75,63 @@ export const toggleFavorite: RequestHandler = async (req, res) => {
 };
 export const getFavorites: RequestHandler = async (req, res) => {
   const userId = req.user.id;
-  const favorite = await Favorite.findOne({ owner: userId }).populate<{
-    items: PopulateFavList[];
-  }>({
-    path: "items",
-    populate: {
-      path: "owner",
-    },
-  });
-  if (!favorite) {
-    res.json({ collections: [] });
-    return;
-  }
-  const collections = favorite.items.map((item) => {
-    return {
-      id: item._id,
-      title: item.title,
-      category: item.category,
-      poster: item.poster?.url,
-      owner: {
-        name: item.owner.name,
-        id: item.owner._id,
-        avatar: item.owner.avatar.url,
-        followers: item.owner.followers,
-        followings: item.owner.followings,
+  const { limit = "20", pageNo = "0" } = req.query as paginationQuery;
+
+  const favorites = await Favorite.aggregate([
+    { $match: { owner: userId } },
+    {
+      $project: {
+        collectionIds: {
+          $slice: [
+            "$items",
+            parseInt(limit) * parseInt(pageNo),
+            parseInt(limit),
+          ],
+        },
       },
-    };
-  });
-  res.json({ collections });
+    },
+    {
+      $unwind: "$collectionIds",
+    },
+    {
+      $lookup: {
+        from: "cardscollections",
+        localField: "collectionIds",
+        foreignField: "_id",
+        as: "collectionInfo",
+      },
+    },
+    {
+      $unwind: "$collectionInfo",
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "collectionInfo.owner",
+        foreignField: "_id",
+        as: "ownerInfo",
+      },
+    },
+    {
+      $unwind: "$ownerInfo",
+    },
+    {
+      $project: {
+        _id: 0,
+        id: "$collectionInfo._id",
+        title: "$collectionInfo.title",
+        description: "$collectionInfo.description",
+        category: "$collectionInfo.category",
+        poster: "$collectionInfo.poster.url",
+        owner: {
+          name: "$ownerInfo.name",
+          id: "$ownerInfo._id",
+          avatar: "$ownerInfo.avatar.url",
+        },
+      },
+    },
+  ]);
+  res.json({ collection: favorites });
 };
 export const getIsFavorite: RequestHandler = async (req, res) => {
   const collectionId = req.query.collectionId as string;
