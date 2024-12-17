@@ -132,7 +132,7 @@ export const generateForgetPasswordLink: RequestHandler = async (req, res) => {
   const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
   // send forget password link email'
   sendForgetPasswordLink({ email: user.email, link: resetLink });
-  res.json({ message: "check your registerd mail" });
+  res.json({ message: "check your registered mail" });
 };
 
 export const grantValid: RequestHandler = async (req, res) => {
