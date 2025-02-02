@@ -1,6 +1,9 @@
 import {
   CreateCard,
   createCardsCollection,
+  deleteCard,
+  getCard,
+  getCollectionWithCards,
   getLatestCollection,
   updateCard,
   updateCardsCollection,
@@ -33,6 +36,20 @@ router.post(
   validate(CardValidationSchema),
   CreateCard
 );
+router.get(
+  "/cards/:collectionId",
+  mustAuth,
+  isVerified,
+  isVerifiedCollection,
+  getCard
+);
+router.delete(
+  "/cards/:collectionId/:cardId",
+  mustAuth,
+  isVerified,
+  isVerifiedCollection,
+  deleteCard
+);
 router.patch(
   "/:CardsCollectionId",
   mustAuth,
@@ -48,6 +65,13 @@ router.patch(
   isVerifiedCollection,
   validate(CardValidationSchema),
   updateCard
+);
+router.get(
+  "/collection/:collectionId/cards",
+  mustAuth,
+  isVerified,
+  isVerifiedCollection,
+  getCollectionWithCards
 );
 router.get("/latest", getLatestCollection);
 

@@ -31,8 +31,13 @@ export const isValidPasswordResetToken: RequestHandler = async (
 };
 
 export const mustAuth: RequestHandler = async (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+
   const { authorization } = req.headers;
   const token = authorization?.split("Bearer ")[1];
+  // console.log({ token });
 
   if (!token) {
     res.status(403).json({ error: "unauthorized request" });
@@ -43,6 +48,7 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
   const id = payload.userId;
 
   const user = await User.findOne({ _id: id, tokens: token });
+  // console.log({ user });
   if (!user) {
     res.status(403).json({ error: "unauthorized request!" });
     return;

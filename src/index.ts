@@ -26,6 +26,10 @@ app.use("/favorite", favoriteRouter);
 app.use("/playlist", playlistRouter);
 app.use("/profile", profileRouter);
 app.use("/history", historyRouter);
+app.use("/", (req, res) => {
+  console.log("Root route accessed");
+  res.send("Welcome to the root route!");
+});
 
 app.use(errorHandler);
 const PORT = process.env.PORT || 8989;

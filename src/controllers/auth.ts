@@ -42,7 +42,7 @@ export const create: RequestHandler = async (req: CreateUser, res) => {
   sendVerificationMail(token, { name, email, userId: user._id.toString() });
   res.status(201).json({ user: { id: user._id, name, email } });
 };
-// function for veridying email
+// function for verifying email
 export const verifyEmail: RequestHandler = async (
   req: VerifyEmailRequest,
   res
@@ -61,7 +61,7 @@ export const verifyEmail: RequestHandler = async (
   const matched = await verificationToken.compareToken(token);
 
   if (!matched) {
-    res.status(403).json({ error: "invalid token!" });
+    res.status(403).json({ error: " token miss match " });
     return;
   }
 
