@@ -43,13 +43,7 @@ router.get(
   isVerifiedCollection,
   getCard
 );
-router.delete(
-  "/cards/:collectionId/:cardId",
-  mustAuth,
-  isVerified,
-  isVerifiedCollection,
-  deleteCard
-);
+router.delete("/cards/:collectionId/:cardId", mustAuth, isVerified, deleteCard);
 router.patch(
   "/:CardsCollectionId",
   mustAuth,
@@ -67,10 +61,9 @@ router.patch(
   updateCard
 );
 router.get(
-  "/collection/:collectionId/cards",
+  "/:collectionId/cards",
   mustAuth,
   isVerified,
-  isVerifiedCollection,
   getCollectionWithCards
 );
 router.get("/latest", getLatestCollection);

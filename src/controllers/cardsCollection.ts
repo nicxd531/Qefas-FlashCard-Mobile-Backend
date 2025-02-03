@@ -130,7 +130,13 @@ export const CreateCard: RequestHandler = async (req, res) => {
     );
     await collection.save();
 
-    res.status(201).json({ message: "Card added successfully", card: newCard });
+    // Populate the collection with the newly added card
+    const updatedCollection = await CardsCollection.findById(collectionId).populate({
+      path: 'cards',
+      select: '_id answer question collectionId'
+    });
+
+    res.status(201).json({ message: "Card added successfully", collection: updatedCollection });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -318,9 +324,10 @@ export const getCollectionWithCards: RequestHandler = async (req, res) => {
   }
 
   try {
-    const collection = await CardsCollection.findById(collectionId).populate(
-      "cards"
-    );
+    const collection = await CardsCollection.findById(collectionId).populate({
+      path: "cards",
+      select: "_id answer question collectionId",
+    });
 
     if (!collection) {
       res.status(404).json({ error: "Collection not found" });
