@@ -17,6 +17,7 @@ import jwt from "jsonwebtoken";
 import { RequestWithFiles } from "#/middleware/fileParser";
 import cloudinary from "#/cloud";
 import formidable from "formidable";
+import CardsCollection from "#/models/cardsCollection";
 
 // function for creating new users
 export const create: RequestHandler = async (req: CreateUser, res) => {
@@ -190,7 +191,7 @@ export const signIn: RequestHandler = async (req, res) => {
       email: user.email,
       verified: user.verified,
       avatar: user.avatar?.url,
-      backgroundCover: user.avatar?.url,
+      backgroundCover: user.backgroundCover?.url,
       followers: user.followers.length,
       followings: user.followings.length,
     },
@@ -203,6 +204,7 @@ export const updateProfile: RequestHandler = async (
 ) => {
   const { name } = req.body;
   const avatar = req.files?.avatar as formidable.File;
+  const backgroundCover = req.files?.backgroundCover as formidable.File;
 
   const user = await User.findById(req.user.id);
 
@@ -234,6 +236,21 @@ export const updateProfile: RequestHandler = async (
     );
     user.avatar = { url: secure_url, publicId: public_id };
   }
+  if (backgroundCover) {
+    if (user.backgroundCover?.publicId) {
+      await cloudinary.uploader.destroy(user.backgroundCover?.publicId);
+    }
+    const { secure_url, url, public_id } = await cloudinary.uploader.upload(
+      backgroundCover.filepath,
+      {
+        width: 300,
+        height: 300,
+        crop: "thumb",
+        gravity: "face",
+      }
+    );
+    user.backgroundCover = { url: secure_url, publicId: public_id };
+  }
 
   await user.save();
   res.json({ profile: formatProfile(user) });
@@ -257,4 +274,56 @@ export const logOut: RequestHandler = async (req, res) => {
 
   await user.save();
   res.json({ success: true });
+};
+
+export const getTopCreators: RequestHandler = async (
+  req: RequestWithFiles,
+  res
+) => {
+  try {
+    const topCreators = await CardsCollection.aggregate([
+      {
+        $group: {
+          _id: "$owner",
+          totalCollections: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$userDetails._id",
+          name: "$userDetails.name",
+          email: "$userDetails.email",
+          // verified: "$userDetails.verified",
+          avatar: "$userDetails.avatar.url",
+          backgroundCover: "$userDetails.backgroundCover.url", // Include background cover
+          // followers: { $size: "$userDetails.followers" },
+          // followings: { $size: "$userDetails.followings" },
+          totalCollections: 1,
+        },
+      },
+      {
+        $sort: { totalCollections: -1 },
+      },
+      {
+        $limit: 10,
+      },
+    ]);
+
+    res.status(200).json({ topCreators });
+  } catch (error) {
+    console.error("Error fetching top creators:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
