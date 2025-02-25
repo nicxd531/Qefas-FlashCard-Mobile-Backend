@@ -5,6 +5,7 @@ import {
   getCard,
   getCollectionWithCards,
   getLatestCollection,
+  getSuggestedCollections,
   updateCard,
   updateCardsCollection,
 } from "#/controllers/cardsCollection";
@@ -67,5 +68,6 @@ router.get(
   getCollectionWithCards
 );
 router.get("/latest", getLatestCollection);
+router.get("/suggested-collections", mustAuth, getSuggestedCollections);
 
 export default router;

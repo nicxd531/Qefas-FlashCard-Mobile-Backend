@@ -23,7 +23,7 @@ import CardsCollection from "#/models/cardsCollection";
 export const create: RequestHandler = async (req: CreateUser, res) => {
   // user data
   const { email, password, name } = req.body;
-
+  // console.log({ email, password, name });
   const alreadyAUser = await User.findOne({ email });
   if (alreadyAUser) {
     res.status(409).json({
@@ -175,7 +175,7 @@ export const signIn: RequestHandler = async (req, res) => {
   // compare the password
   const matched = await user.comparePassword(password);
   if (!matched) {
-    res.status(403).json({ error: "email/password mismatch!" });
+    res.status(401).json({ error: "email/password mismatch!" });
     return;
   }
   //  generate token
@@ -198,62 +198,126 @@ export const signIn: RequestHandler = async (req, res) => {
     token,
   });
 };
+// export const updateProfile: RequestHandler = async (
+//   req: RequestWithFiles,
+//   res
+// ) => {
+//   const { name } = req.body;
+//   const avatar = req.files?.avatar as formidable.File;
+//   const backgroundCover = req.files?.backgroundCover as formidable.File;
+
+//   const user = await User.findById(req.user.id);
+//   if (!user) throw new Error("something went wrong, user not found!");
+//   if (name) {
+//     if (typeof name !== "string") {
+//       res.status(422).json({ error: "invalid name" });
+//       return;
+//     }
+
+//     if (name.trim().length < 3) {
+//       res.status(422).json({ error: "invalid name" });
+//       return;
+//     }
+//     user.name = name;
+//   }
+
+//   if (avatar) {
+//     if (user?.avatar?.publicId) {
+//       await cloudinary.uploader.destroy(user.avatar?.publicId);
+//     }
+//     const { secure_url, url, public_id } = await cloudinary.uploader.upload(
+//       avatar.filepath,
+//       {
+//         width: 300,
+//         height: 300,
+//         crop: "thumb",
+//         gravity: "face",
+//       }
+//     );
+//     user.avatar = { url: secure_url, publicId: public_id };
+//   }
+//   if (backgroundCover) {
+//     if (user.backgroundCover?.publicId) {
+//       await cloudinary.uploader.destroy(user.backgroundCover?.publicId);
+//     }
+//     const { secure_url, url, public_id } = await cloudinary.uploader.upload(
+//       backgroundCover.filepath,
+//       {
+//         width: 300,
+//         height: 300,
+//         crop: "thumb",
+//         gravity: "face",
+//       }
+//     );
+//     user.backgroundCover = { url: secure_url, publicId: public_id };
+//   }
+
+//   await user.save();
+//   res.json({ profile: formatProfile(user) });
+// };
 export const updateProfile: RequestHandler = async (
   req: RequestWithFiles,
   res
 ) => {
-  const { name } = req.body;
-  const avatar = req.files?.avatar as formidable.File;
-  const backgroundCover = req.files?.backgroundCover as formidable.File;
+  try {
+    const { name } = req.body;
+    const avatar = req.files?.avatar as formidable.File;
+    const backgroundCover = req.files?.backgroundCover as formidable.File;
 
-  const user = await User.findById(req.user.id);
+    // console.log("Uploaded files:", req.files); // Debugging log
 
-  if (!user) throw new Error("something went wrong, user not found!");
+    const user = await User.findById(req.user.id);
+    if (!user) throw new Error("User not found!");
 
-  if (typeof name !== "string") {
-    res.status(422).json({ error: "invalid name" });
-    return;
-  }
-
-  if (name.trim().length < 3) {
-    res.status(422).json({ error: "invalid name" });
-    return;
-  }
-  user.name = name;
-
-  if (avatar) {
-    if (user.avatar?.publicId) {
-      await cloudinary.uploader.destroy(user.avatar?.publicId);
-    }
-    const { secure_url, url, public_id } = await cloudinary.uploader.upload(
-      avatar.filepath,
-      {
-        width: 300,
-        height: 300,
-        crop: "thumb",
-        gravity: "face",
+    // Name Validation
+    if (name) {
+      if (typeof name !== "string" || name.trim().length < 3) {
+        res.status(422).json({ error: "Invalid name" });
+        return;
       }
-    );
-    user.avatar = { url: secure_url, publicId: public_id };
-  }
-  if (backgroundCover) {
-    if (user.backgroundCover?.publicId) {
-      await cloudinary.uploader.destroy(user.backgroundCover?.publicId);
+      user.name = name;
     }
-    const { secure_url, url, public_id } = await cloudinary.uploader.upload(
-      backgroundCover.filepath,
-      {
-        width: 300,
-        height: 300,
-        crop: "thumb",
-        gravity: "face",
-      }
-    );
-    user.backgroundCover = { url: secure_url, publicId: public_id };
-  }
 
-  await user.save();
-  res.json({ profile: formatProfile(user) });
+    // Avatar Upload
+    if (avatar) {
+      if (user.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId);
+      }
+      const { secure_url, public_id } = await cloudinary.uploader.upload(
+        avatar.filepath,
+        {
+          width: 300,
+          height: 300,
+          crop: "thumb",
+          gravity: "face",
+        }
+      );
+      user.avatar = { url: secure_url, publicId: public_id };
+    }
+
+    // Background Cover Upload
+    if (backgroundCover) {
+      // console.log("Uploading background cover..."); // Debugging log
+      if (user.backgroundCover?.publicId) {
+        await cloudinary.uploader.destroy(user.backgroundCover.publicId);
+      }
+      const { secure_url, public_id } = await cloudinary.uploader.upload(
+        backgroundCover.filepath,
+        {
+          width: 1200,
+          height: 400,
+          crop: "fill", // Ensures full cover size
+        }
+      );
+      user.backgroundCover = { url: secure_url, publicId: public_id };
+    }
+
+    await user.save();
+    res.json({ profile: formatProfile(user) });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 export const sendProfile: RequestHandler = (req, res) => {

@@ -208,7 +208,7 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
       index: "$index",
     },
   };
-  const cardsCollection = await History.aggregate([
+  const recentlyPlayed = await History.aggregate([
     match,
     sliceMatch,
     dateSort,
@@ -220,5 +220,5 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
     projectResult,
   ]);
 
-  res.json({ cardsCollection });
+  res.json({ recentlyPlayed });
 };
