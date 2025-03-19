@@ -1,11 +1,17 @@
 import {
+  CreateAiCards,
+  CreateBulkCards,
   CreateCard,
   createCardsCollection,
   deleteCard,
+  deleteCollection,
+  generateHuggingFace,
   getCard,
   getCollectionWithCards,
   getLatestCollection,
+  getPublicCollectionsCategories,
   getSuggestedCollections,
+  handleLikeCollection,
   updateCard,
   updateCardsCollection,
 } from "#/controllers/cardsCollection";
@@ -17,7 +23,9 @@ import {
   CardsCollectionValidationSchema,
   CardValidationSchema,
 } from "#/utils/validationSchema";
-import { Router } from "express";
+import { HUGGING_FACE_API_KEY2 } from "#/utils/variables";
+import axios from "axios";
+import { Router, Request, Response } from "express";
 
 const router = Router();
 
@@ -45,6 +53,7 @@ router.get(
   getCard
 );
 router.delete("/cards/:collectionId/:cardId", mustAuth, isVerified, deleteCard);
+router.delete("/:collectionId", mustAuth, isVerified, deleteCollection);
 router.patch(
   "/:CardsCollectionId",
   mustAuth,
@@ -61,13 +70,13 @@ router.patch(
   validate(CardValidationSchema),
   updateCard
 );
-router.get(
-  "/:collectionId/cards",
-  mustAuth,
-  isVerified,
-  getCollectionWithCards
-);
-router.get("/latest", getLatestCollection);
+router.get("/:collectionId/cards", getCollectionWithCards);
+router.get("/latest-collection", getLatestCollection);
 router.get("/suggested-collections", mustAuth, getSuggestedCollections);
+router.post("/:collectionId/like", mustAuth, handleLikeCollection);
+router.post("/bulk", mustAuth, CreateBulkCards);
+router.post("/create-cards-ai", mustAuth, CreateAiCards);
+router.post("/generate-hugging", mustAuth, generateHuggingFace);
+router.post("/public-category", getPublicCollectionsCategories);
 
 export default router;

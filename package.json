@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": " Qefas flash card dictionary app mobile back end",
   "dependencies": {
+    "axios": "^1.8.1",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
@@ -23,6 +24,7 @@
     "mongoose": "^8.8.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
+    "openai": "^4.86.2",
     "yup": "^1.4.0"
   },
   "devDependencies": {

@@ -10,4 +10,6 @@ export const {
   CLOUD_NAME,
   CLOUD_KEY,
   CLOUD_SECRET,
+  OPENAI_API_KEY,
+  HUGGING_FACE_API_KEY2,
 } = env;

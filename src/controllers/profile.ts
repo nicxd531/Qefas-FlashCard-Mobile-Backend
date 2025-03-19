@@ -158,8 +158,12 @@ export const getPublicProfile: RequestHandler = async (req, res) => {
     profile: {
       id: user._id,
       name: user.name,
+      email: user.email,
+      verified: user.verified,
       followers: user.followers.length,
+      following: user.followings.length,
       avatar: user.avatar?.url,
+      backgroundCover: user.backgroundCover?.url,
     },
   });
 };
@@ -219,7 +223,7 @@ export const getRecommendedByProfile: RequestHandler = async (req, res) => {
       },
     },
     {
-      $limit: 10,
+      $limit: 6,
     },
     {
       $lookup: {
