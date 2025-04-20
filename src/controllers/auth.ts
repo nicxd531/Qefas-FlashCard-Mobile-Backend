@@ -66,9 +66,21 @@ export const verifyEmail: RequestHandler = async (
     return;
   }
 
-  await User.findByIdAndUpdate(userId, { verified: true });
+  const user = await User.findByIdAndUpdate(userId, { verified: true });
   await EmailVerificationToken.findByIdAndDelete(verificationToken._id);
-  res.json({ message: "your email is verified" });
+  res.json({
+    message: "your email is verified",
+    profile: {
+      id: user?._id,
+      name: user?.name,
+      email: user?.email,
+      verified: user?.verified,
+      avatar: user?.avatar?.url,
+      backgroundCover: user?.backgroundCover?.url,
+      followers: user?.followers.length,
+      followings: user?.followings.length,
+    },
+  });
 };
 
 // function for sending verification mail
@@ -331,7 +343,7 @@ export const logOut: RequestHandler = async (req, res) => {
 
   const user = await User.findById(req.user.id);
   if (!user) throw new Error("something went wrong, user not found!");
-  //  loggOut from all
+  //  logOut from all
 
   if (fromAll === "yes") user.tokens = [];
   else user.tokens = user.tokens.filter((t) => t !== token);

@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 import User from "#/models/User";
 import axios from "axios";
 import { HUGGING_FACE_API_KEY2, OPENAI_API_KEY } from "#/utils/variables";
+import { url } from "inspector";
 
 interface createCardsCollectionRequest extends RequestWithFiles {
   body: {
@@ -85,43 +86,168 @@ export const createCardsCollection: RequestHandler = async (
     res.status(500).json({ error: err });
   }
 };
-export const CreateCard: RequestHandler = async (req, res) => {
-  const { answer, question, collectionId } = req.body;
+// export const CreateCard: RequestHandler = async (req, res) => {
+//   const { answer, question, collectionId } = req.body;
 
+//   const ownerId = req.user.id;
+
+//   if (!answer.length || !question.length) {
+//     res.status(422).json({
+//       error: "missing answer or question",
+//       message: "question and answer is required to create card",
+//     });
+//     return;
+//   }
+
+//   try {
+//     const exist = await Card.findOne({
+//       owner: ownerId,
+//       question: question,
+//       collectionId: collectionId,
+//     });
+//     if (exist) {
+//       res.status(422).json({
+//         error: "user already has the card in his collection",
+//         message: "this card already exist in the collection",
+//       });
+//       return;
+//     }
+
+//     const newCard = new Card({
+//       question,
+//       answer,
+//       owner: ownerId,
+//       collectionId,
+//     });
+
+//     await newCard.save();
+
+//     // Add the new card ID to the collection's cards array
+//     const collection = await CardsCollection.findById(collectionId);
+//     if (!collection) {
+//       res.status(404).json({ error: "Collection not found" });
+//       return;
+//     }
+
+//     collection.cards.push(
+//       newCard._id as unknown as mongoose.Schema.Types.ObjectId
+//     );
+//     await collection.save();
+
+//     // Populate the collection with the newly added card
+//     const updatedCollection = await CardsCollection.findById(
+//       collectionId
+//     ).populate({
+//       path: "cards",
+//       select: "_id answer question collectionId",
+//     });
+
+//     res.status(201).json({
+//       message: "Card added successfully",
+//       collection: updatedCollection,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
+export const CreateCard: RequestHandler = async (req, res): Promise<void> => {
   const ownerId = req.user.id;
-
-  if (!answer || !question) {
+  const { collectionId } = req.body;
+  if (!collectionId) {
+    console.log("collectionId", collectionId);
     res.status(422).json({
-      error: "missing answer or question",
-      message: "question and answer is required to create card",
+      error: "missing collectionId",
+      message: "collectionId is required to create card",
     });
     return;
   }
 
+  let { question = [], answer = [] } = req.body;
+  const questionFiles = req.files?.question || [];
+  const answerFiles = req.files?.answer || [];
+
+  // Ensure arrays
+  if (!Array.isArray(question)) question = Object.values(question);
+  if (!Array.isArray(answer)) answer = Object.values(answer);
+
   try {
+    // Limit to 3 each
+    if (question.length > 3 || answer.length > 3) {
+      res.status(422).json({
+        error: "Limit exceeded",
+        message: "Only up to 3 questions and 3 answers are allowed",
+      });
+      return;
+    }
+
+    // Combine text + images for questions
+    const formattedQuestions = await Promise.all(
+      question.map(async (q: any, index: number) => {
+        const imageFile = questionFiles?.[index]?.image;
+        const imageUrl = imageFile
+          ? await cloudinary.uploader.upload(imageFile.filepath)
+          : null;
+
+        return {
+          text: q.text,
+          image: {
+            url: imageUrl?.secure_url || null,
+            publicId: imageUrl?.public_id || null,
+          },
+        };
+      })
+    );
+
+    // Combine text + images for answers
+    const formattedAnswers = await Promise.all(
+      answer.map(async (a: any, index: number) => {
+        const imageFile = answerFiles?.[index]?.image;
+        const imageUrl = imageFile
+          ? await cloudinary.uploader.upload(imageFile.filepath)
+          : null;
+
+        return {
+          text: a.text,
+          image: {
+            url: imageUrl?.secure_url || null,
+            publicId: imageUrl?.public_id || null,
+          },
+        };
+      })
+    );
+
+    if (!formattedAnswers.length || !formattedQuestions.length) {
+      res.status(422).json({
+        error: "missing answer or question",
+        message: "question and answer are required to create card",
+      });
+      return;
+    }
+
     const exist = await Card.findOne({
       owner: ownerId,
-      question: question,
-      collectionId: collectionId,
+      question: formattedQuestions,
+      collectionId,
     });
+
     if (exist) {
       res.status(422).json({
-        error: "user already has the card in his collection",
-        message: "this card already exist in the collection",
+        error: "Card exists",
+        message: "This card already exists in the collection",
       });
       return;
     }
 
     const newCard = new Card({
-      question,
-      answer,
+      question: formattedQuestions,
+      answer: formattedAnswers,
       owner: ownerId,
       collectionId,
     });
 
     await newCard.save();
 
-    // Add the new card ID to the collection's cards array
+    // Add card to collection
     const collection = await CardsCollection.findById(collectionId);
     if (!collection) {
       res.status(404).json({ error: "Collection not found" });
@@ -133,7 +259,6 @@ export const CreateCard: RequestHandler = async (req, res) => {
     );
     await collection.save();
 
-    // Populate the collection with the newly added card
     const updatedCollection = await CardsCollection.findById(
       collectionId
     ).populate({
@@ -146,10 +271,10 @@ export const CreateCard: RequestHandler = async (req, res) => {
       collection: updatedCollection,
     });
   } catch (err) {
+    console.error("CreateCard error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 export const updateCardsCollection: RequestHandler = async (
   req: createCardsCollectionRequest,
   res
@@ -158,8 +283,6 @@ export const updateCardsCollection: RequestHandler = async (
   const ownerId = req.user.id;
   const poster = req.files?.poster as formidable.File;
   const { CardsCollectionId } = req.params;
-  // const test = req.params;Z
-  // console.log({ test, ownerId });
   const newCardsCollection = await CardsCollection.findOneAndUpdate(
     {
       owner: ownerId,
@@ -249,7 +372,6 @@ export const updateCard: RequestHandler = async (req, res) => {
 
 export const getCard: RequestHandler = async (req, res) => {
   const { collectionId } = req.params;
-
   if (!collectionId) {
     res.status(400).json({ error: "Collection ID is required" });
     return;
@@ -417,11 +539,55 @@ export const getSuggestedCollections: RequestHandler = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+// get likes in collection
+export const getCollectionLikes: RequestHandler = async (req, res) => {
+  const { collectionId } = req.params;
+
+  try {
+    const collection = await CardsCollection.findById(collectionId);
+
+    if (!collection) {
+      res.status(404).json({ error: "Collection not found" });
+      return;
+    }
+
+    const totalLikes = collection.likes.length;
+
+    res.json({ totalLikes });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+// check user likes
+export const checkUserLikeStatus: RequestHandler = async (req, res) => {
+  const { collectionId } = req.params;
+  const userId = req.user.id; // Assuming you have middleware that sets req.user
+  const hasUserLikedCollection = async (
+    userId: string,
+    collectionId: string
+  ): Promise<boolean> => {
+    try {
+      const collection = await CardsCollection.findById(collectionId);
+      if (!collection) return false; // If collection doesn't exist, return false
+
+      return collection.likes.some((id) => id.toString() === userId.toString());
+    } catch (error) {
+      console.error("Error checking like status:", error);
+      return false;
+    }
+  };
+  try {
+    const isLiked = await hasUserLikedCollection(userId, collectionId);
+    res.json({ liked: isLiked });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 export const handleLikeCollection = async (req: any, res: any) => {
   const { collectionId } = req.params;
   const userId = req.user.id;
-
+  let status: "liked" | "unLiked";
   try {
     const collection = await CardsCollection.findById(collectionId);
 
@@ -430,7 +596,6 @@ export const handleLikeCollection = async (req: any, res: any) => {
     }
 
     const isLiked = collection.likes.includes(userId);
-    // console.log({ isLiked });
 
     if (isLiked) {
       // Unlike the collection
@@ -438,13 +603,14 @@ export const handleLikeCollection = async (req: any, res: any) => {
         (id) => id.toString() !== userId.toString()
       ); // Use filter to remove the userId
       await collection.save();
-      return res.json({ message: "Collection unliked", liked: false });
+      status = "unLiked";
     } else {
       // Like the collection
       collection.likes.push(userId);
       await collection.save();
-      return res.json({ message: "Collection liked", liked: true });
+      status = "liked";
     }
+    res.json({ status });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -690,5 +856,59 @@ export const getPublicCollectionsCategories: RequestHandler = async (
   } catch (error) {
     console.error("Error fetching public collections:", error);
     res.status(500).json({ error: "Failed to fetch collections" });
+  }
+};
+// correct and wrong cards
+
+export const updateCorrectCards: RequestHandler = async (req, res) => {
+  try {
+    const { collectionId, cardId, type } = req.params;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(collectionId) ||
+      !mongoose.Types.ObjectId.isValid(cardId)
+    ) {
+      res.status(400).json({ error: "Invalid collectionId or cardId" });
+      return;
+    }
+
+    const collection = await CardsCollection.findById(collectionId);
+    if (!collection) {
+      res.status(404).json({ error: "Collection not found" });
+      return;
+    }
+
+    const cardObjectId = new mongoose.Types.ObjectId(cardId);
+    const isAlreadyCorrect = collection.correctCards.some(
+      (id) => String(id) === String(cardObjectId)
+    );
+
+    if (type === "write") {
+      if (!isAlreadyCorrect) {
+        collection.correctCards.push(cardId as any);
+      }
+    } else if (type === "wrong") {
+      collection.correctCards = collection.correctCards.filter(
+        (id) => String(id) !== String(cardObjectId)
+      );
+    } else {
+      res.status(400).json({ error: "Invalid type parameter" });
+      return;
+    }
+
+    // Move correctCards to the back of the cards array
+    const correctSet = new Set(collection.correctCards.map(String));
+    collection.cards = [
+      ...collection.cards.filter((id) => !correctSet.has(String(id))),
+      ...collection.correctCards,
+    ];
+
+    await collection.save();
+    res.json({ message: "Card updated successfully", collection });
+    return;
+  } catch (error) {
+    console.error("Error updating correct cards:", error);
+    res.status(500).json({ error: "Internal server error" });
+    return;
   }
 };

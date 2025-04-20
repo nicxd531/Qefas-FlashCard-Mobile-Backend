@@ -197,9 +197,9 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
   const projectResult = {
     $project: {
       _id: 0,
-      id: "$cardsCOllectionInfo._id",
+      id: "$cardsCollectionInfo._id",
       title: "$cardsCollectionInfo.title",
-      about: "$cardsCollectionInfo.about",
+      about: "$cardsCollectionInfo.description",
       poster: "$cardsCollectionInfo.poster.url",
       category: "$cardsCollectionInfo.category",
       owner: { name: "$owner.name", id: "$owner._id" },
@@ -219,6 +219,6 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
     unWindUser,
     projectResult,
   ]);
-
+  // console.log({ recentlyPlayed });
   res.json({ recentlyPlayed });
 };

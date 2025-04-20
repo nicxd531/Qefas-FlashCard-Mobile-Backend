@@ -1,4 +1,5 @@
 import {
+  checkUserLikeStatus,
   CreateAiCards,
   CreateBulkCards,
   CreateCard,
@@ -7,6 +8,7 @@ import {
   deleteCollection,
   generateHuggingFace,
   getCard,
+  getCollectionLikes,
   getCollectionWithCards,
   getLatestCollection,
   getPublicCollectionsCategories,
@@ -14,8 +16,11 @@ import {
   handleLikeCollection,
   updateCard,
   updateCardsCollection,
+  updateCorrectCards,
 } from "#/controllers/cardsCollection";
 import { isVerified, mustAuth } from "#/middleware/auth";
+import CardsFileParser from "#/middleware/cardsFileParser";
+
 import { isVerifiedCollection } from "#/middleware/Collection";
 import fileParser from "#/middleware/fileParser";
 import { validate } from "#/middleware/validator";
@@ -37,19 +42,12 @@ router.post(
   validate(CardsCollectionValidationSchema),
   createCardsCollection
 );
-router.post(
-  "/create-Card",
-  mustAuth,
-  isVerified,
-  isVerifiedCollection,
-  validate(CardValidationSchema),
-  CreateCard
-);
+router.post("/create-Card", mustAuth, isVerified, CardsFileParser, CreateCard);
 router.get(
   "/cards/:collectionId",
   mustAuth,
   isVerified,
-  isVerifiedCollection,
+  // isVerifiedCollection,
   getCard
 );
 router.delete("/cards/:collectionId/:cardId", mustAuth, isVerified, deleteCard);
@@ -78,5 +76,11 @@ router.post("/bulk", mustAuth, CreateBulkCards);
 router.post("/create-cards-ai", mustAuth, CreateAiCards);
 router.post("/generate-hugging", mustAuth, generateHuggingFace);
 router.post("/public-category", getPublicCollectionsCategories);
+router.put(
+  "/correctCards/:collectionId/cards/:cardId/:type",
+  updateCorrectCards
+);
+router.get("/:collectionId/likes", getCollectionLikes);
+router.get("/like-status/:collectionId", mustAuth, checkUserLikeStatus);
 
 export default router;

@@ -43,14 +43,12 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
     res.status(403).json({ error: "unauthorized request" });
     return;
   }
-
   const payload = verify(token, JWT_SECRET) as JwtPayload;
   const id = payload.userId;
 
   const user = await User.findOne({ _id: id, tokens: token });
-  // console.log({ user });
   if (!user) {
-    res.status(403).json({ error: "unauthorized request!" });
+    res.status(401).json({ error: "unauthorized request!" });
     return;
   }
   req.user = {
@@ -76,7 +74,7 @@ export const isAuth: RequestHandler = async (req, res, next) => {
 
     const user = await User.findOne({ _id: id, tokens: token });
     if (!user) {
-      res.status(403).json({ error: "unauthorized request!" });
+      res.status(401).json({ error: "unauthorized request!" });
       return;
     }
     req.user = {
@@ -98,9 +96,8 @@ export const isAuth: RequestHandler = async (req, res, next) => {
 export const isVerified: RequestHandler = (req, res, next) => {
   if (!req.user.verified) {
     res.status(403).json({
-      error: "non verifies user",
-      message:
-        "only verified users can create cards!, please verify your account!",
+      error: "non verified user",
+      message: "You have to be verified to perform this action!",
     });
     return;
   }

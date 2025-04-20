@@ -3,7 +3,6 @@ import { RequestHandler } from "express";
 
 export const isVerifiedCollection: RequestHandler = async (req, res, next) => {
   const { collectionId } = req.body;
-
   try {
     if (!collectionId) {
       res.status(403).json({
