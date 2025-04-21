@@ -20,9 +20,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static("src/public"));
 app.use(cors());
 
-app.get("*", (req, res) => {
-  res.status(404).send("Page Not Found nicx");
-});
+// app.get("*", (req, res) => {
+//   res.status(404).send("Page Not Found nicx");
+// });
 
 app.use("/auth", authRouter);
 app.use("/collection", cardsCollectionRouter);
