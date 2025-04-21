@@ -17,20 +17,19 @@ import jwt from "jsonwebtoken";
 import { RequestWithFiles } from "#/middleware/fileParser";
 import cloudinary from "#/cloud";
 import formidable from "formidable";
+import CardsCollection from "#/models/cardsCollection";
 
 // function for creating new users
 export const create: RequestHandler = async (req: CreateUser, res) => {
   // user data
   const { email, password, name } = req.body;
-
+  // console.log({ email, password, name });
   const alreadyAUser = await User.findOne({ email });
   if (alreadyAUser) {
-    res
-      .status(409)
-      .json({
-        error: "User already exists",
-        message: "the email is already associated with an account",
-      });
+    res.status(409).json({
+      error: "User already exists",
+      message: "the email is already associated with an account",
+    });
     return;
   }
   //   create user
@@ -44,7 +43,7 @@ export const create: RequestHandler = async (req: CreateUser, res) => {
   sendVerificationMail(token, { name, email, userId: user._id.toString() });
   res.status(201).json({ user: { id: user._id, name, email } });
 };
-// function for veridying email
+// function for verifying email
 export const verifyEmail: RequestHandler = async (
   req: VerifyEmailRequest,
   res
@@ -63,13 +62,25 @@ export const verifyEmail: RequestHandler = async (
   const matched = await verificationToken.compareToken(token);
 
   if (!matched) {
-    res.status(403).json({ error: "invalid token!" });
+    res.status(403).json({ error: " token miss match " });
     return;
   }
 
-  await User.findByIdAndUpdate(userId, { verified: true });
+  const user = await User.findByIdAndUpdate(userId, { verified: true });
   await EmailVerificationToken.findByIdAndDelete(verificationToken._id);
-  res.json({ message: "your email is verified" });
+  res.json({
+    message: "your email is verified",
+    profile: {
+      id: user?._id,
+      name: user?.name,
+      email: user?.email,
+      verified: user?.verified,
+      avatar: user?.avatar?.url,
+      backgroundCover: user?.backgroundCover?.url,
+      followers: user?.followers.length,
+      followings: user?.followings.length,
+    },
+  });
 };
 
 // function for sending verification mail
@@ -79,11 +90,22 @@ export const sendReVerificationToken: RequestHandler = async (req, res) => {
   // find verification token
   const user = await User.findById(userId);
   if (!isValidObjectId(user)) {
-    res.status(403).json({ error: "invalid request!" });
+    res
+      .status(403)
+      .json({ error: "invalid request!", message: "invalid request!" });
     return;
   }
   if (!user) {
-    res.status(403).json({ error: "invalid request!" });
+    res
+      .status(403)
+      .json({ error: "invalid request!", message: "user not found!" });
+    return;
+  }
+  if (user.verified) {
+    res.status(422).json({
+      error: "invalid request, account verified!",
+      message: "user is already verified!",
+    });
     return;
   }
 
@@ -123,7 +145,7 @@ export const generateForgetPasswordLink: RequestHandler = async (req, res) => {
   const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
   // send forget password link email'
   sendForgetPasswordLink({ email: user.email, link: resetLink });
-  res.json({ message: "check your registerd mail" });
+  res.json({ message: "check your registered mail" });
 };
 
 export const grantValid: RequestHandler = async (req, res) => {
@@ -165,7 +187,7 @@ export const signIn: RequestHandler = async (req, res) => {
   // compare the password
   const matched = await user.comparePassword(password);
   if (!matched) {
-    res.status(403).json({ error: "email/password mismatch!" });
+    res.status(401).json({ error: "email/password mismatch!" });
     return;
   }
   //  generate token
@@ -181,53 +203,133 @@ export const signIn: RequestHandler = async (req, res) => {
       email: user.email,
       verified: user.verified,
       avatar: user.avatar?.url,
-      backgroundCover: user.avatar?.url,
+      backgroundCover: user.backgroundCover?.url,
       followers: user.followers.length,
       followings: user.followings.length,
     },
     token,
   });
 };
+// export const updateProfile: RequestHandler = async (
+//   req: RequestWithFiles,
+//   res
+// ) => {
+//   const { name } = req.body;
+//   const avatar = req.files?.avatar as formidable.File;
+//   const backgroundCover = req.files?.backgroundCover as formidable.File;
+
+//   const user = await User.findById(req.user.id);
+//   if (!user) throw new Error("something went wrong, user not found!");
+//   if (name) {
+//     if (typeof name !== "string") {
+//       res.status(422).json({ error: "invalid name" });
+//       return;
+//     }
+
+//     if (name.trim().length < 3) {
+//       res.status(422).json({ error: "invalid name" });
+//       return;
+//     }
+//     user.name = name;
+//   }
+
+//   if (avatar) {
+//     if (user?.avatar?.publicId) {
+//       await cloudinary.uploader.destroy(user.avatar?.publicId);
+//     }
+//     const { secure_url, url, public_id } = await cloudinary.uploader.upload(
+//       avatar.filepath,
+//       {
+//         width: 300,
+//         height: 300,
+//         crop: "thumb",
+//         gravity: "face",
+//       }
+//     );
+//     user.avatar = { url: secure_url, publicId: public_id };
+//   }
+//   if (backgroundCover) {
+//     if (user.backgroundCover?.publicId) {
+//       await cloudinary.uploader.destroy(user.backgroundCover?.publicId);
+//     }
+//     const { secure_url, url, public_id } = await cloudinary.uploader.upload(
+//       backgroundCover.filepath,
+//       {
+//         width: 300,
+//         height: 300,
+//         crop: "thumb",
+//         gravity: "face",
+//       }
+//     );
+//     user.backgroundCover = { url: secure_url, publicId: public_id };
+//   }
+
+//   await user.save();
+//   res.json({ profile: formatProfile(user) });
+// };
 export const updateProfile: RequestHandler = async (
   req: RequestWithFiles,
   res
 ) => {
-  const { name } = req.body;
-  const avatar = req.files?.avatar as formidable.File;
+  try {
+    const { name } = req.body;
+    const avatar = req.files?.avatar as formidable.File;
+    const backgroundCover = req.files?.backgroundCover as formidable.File;
 
-  const user = await User.findById(req.user.id);
+    // console.log("Uploaded files:", req.files); // Debugging log
 
-  if (!user) throw new Error("something went wrong, user not found!");
+    const user = await User.findById(req.user.id);
+    if (!user) throw new Error("User not found!");
 
-  if (typeof name !== "string") {
-    res.status(422).json({ error: "invalid name" });
-    return;
-  }
-
-  if (name.trim().length < 3) {
-    res.status(422).json({ error: "invalid name" });
-    return;
-  }
-  user.name = name;
-
-  if (avatar) {
-    if (user.avatar?.publicId) {
-      await cloudinary.uploader.destroy(user.avatar?.publicId);
-    }
-    const { secure_url, url, public_id } = await cloudinary.uploader.upload(
-      avatar.filepath,
-      {
-        width: 300,
-        height: 300,
-        crop: "thumb",
-        gravity: "face",
+    // Name Validation
+    if (name) {
+      if (typeof name !== "string" || name.trim().length < 3) {
+        res.status(422).json({ error: "Invalid name" });
+        return;
       }
-    );
-    user.avatar = { url: secure_url, publicId: public_id };
-  }
+      user.name = name;
+    }
 
-  await user.save();
-  res.json({ profile: formatProfile(user) });
+    // Avatar Upload
+    if (avatar) {
+      if (user.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId);
+      }
+      const { secure_url, public_id } = await cloudinary.uploader.upload(
+        avatar.filepath,
+        {
+          width: 300,
+          height: 300,
+          crop: "thumb",
+          gravity: "face",
+        }
+      );
+      user.avatar = { url: secure_url, publicId: public_id };
+    }
+
+    // Background Cover Upload
+    if (backgroundCover) {
+      // console.log("Uploading background cover..."); // Debugging log
+      if (user.backgroundCover?.publicId) {
+        await cloudinary.uploader.destroy(user.backgroundCover.publicId);
+      }
+      const { secure_url, public_id } = await cloudinary.uploader.upload(
+        backgroundCover.filepath,
+        {
+          width: 1200,
+          height: 400,
+          crop: "fill", // Ensures full cover size
+        }
+      );
+      user.backgroundCover = { url: secure_url, publicId: public_id };
+    }
+
+    await user.save();
+    res.json({ profile: formatProfile(user) });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 export const sendProfile: RequestHandler = (req, res) => {
@@ -241,11 +343,63 @@ export const logOut: RequestHandler = async (req, res) => {
 
   const user = await User.findById(req.user.id);
   if (!user) throw new Error("something went wrong, user not found!");
-  //  loggOut from all
+  //  logOut from all
 
   if (fromAll === "yes") user.tokens = [];
   else user.tokens = user.tokens.filter((t) => t !== token);
 
   await user.save();
   res.json({ success: true });
+};
+
+export const getTopCreators: RequestHandler = async (
+  req: RequestWithFiles,
+  res
+) => {
+  try {
+    const topCreators = await CardsCollection.aggregate([
+      {
+        $group: {
+          _id: "$owner",
+          totalCollections: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$userDetails._id",
+          name: "$userDetails.name",
+          email: "$userDetails.email",
+          // verified: "$userDetails.verified",
+          avatar: "$userDetails.avatar.url",
+          backgroundCover: "$userDetails.backgroundCover.url", // Include background cover
+          // followers: { $size: "$userDetails.followers" },
+          // followings: { $size: "$userDetails.followings" },
+          totalCollections: 1,
+        },
+      },
+      {
+        $sort: { totalCollections: -1 },
+      },
+      {
+        $limit: 10,
+      },
+    ]);
+
+    res.status(200).json({ topCreators });
+  } catch (error) {
+    console.error("Error fetching top creators:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

@@ -16,14 +16,14 @@ export const isValidPasswordResetToken: RequestHandler = async (
     owner: userId,
   });
   if (!resetToken) {
-    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    res.status(403).json({ error: "unauthorized access,invalid token" });
     return;
   }
 
   const matched = await resetToken.compareToken(token);
 
   if (!matched) {
-    res.status(403).json({ error: "Unauthorised access,invalid token" });
+    res.status(403).json({ error: "unauthorized access,invalid token" });
     return;
   }
 
@@ -31,20 +31,24 @@ export const isValidPasswordResetToken: RequestHandler = async (
 };
 
 export const mustAuth: RequestHandler = async (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+
   const { authorization } = req.headers;
   const token = authorization?.split("Bearer ")[1];
+  // console.log({ token });
 
   if (!token) {
-    res.status(403).json({ error: "Unauthorised request" });
+    res.status(403).json({ error: "unauthorized request" });
     return;
   }
-
   const payload = verify(token, JWT_SECRET) as JwtPayload;
   const id = payload.userId;
 
   const user = await User.findOne({ _id: id, tokens: token });
   if (!user) {
-    res.status(403).json({ error: "Unauthorised request!" });
+    res.status(401).json({ error: "unauthorized request!" });
     return;
   }
   req.user = {
@@ -58,5 +62,44 @@ export const mustAuth: RequestHandler = async (req, res, next) => {
     followings: user.followings.length,
   };
   req.token = token;
+  next();
+};
+export const isAuth: RequestHandler = async (req, res, next) => {
+  const { authorization } = req.headers;
+  const token = authorization?.split("Bearer ")[1];
+
+  if (token) {
+    const payload = verify(token, JWT_SECRET) as JwtPayload;
+    const id = payload.userId;
+
+    const user = await User.findOne({ _id: id, tokens: token });
+    if (!user) {
+      res.status(401).json({ error: "unauthorized request!" });
+      return;
+    }
+    req.user = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      verified: user.verified,
+      avatar: user.avatar?.url,
+      backgroundCover: user.avatar?.url,
+      followers: user.followers.length,
+      followings: user.followings.length,
+    };
+    req.token = token;
+  }
+
+  next();
+};
+
+export const isVerified: RequestHandler = (req, res, next) => {
+  if (!req.user.verified) {
+    res.status(403).json({
+      error: "non verified user",
+      message: "You have to be verified to perform this action!",
+    });
+    return;
+  }
   next();
 };

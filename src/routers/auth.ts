@@ -1,6 +1,7 @@
 import {
   create,
   generateForgetPasswordLink,
+  getTopCreators,
   grantValid,
   logOut,
   sendProfile,
@@ -39,6 +40,7 @@ router.post(
 );
 router.post("/sign-in", validate(SignValidationSchema), signIn);
 router.get("/is-auth", mustAuth, sendProfile);
+router.get("/top-creators", mustAuth, getTopCreators);
 router.post("/update-profile", mustAuth, fileParser, updateProfile);
 router.post("/log-out", mustAuth, logOut);
 
