@@ -2,6 +2,7 @@ import { Model, model, models, ObjectId, Schema } from "mongoose";
 
 interface playlistDocument {
   title: string;
+  main: ObjectId;
   owner: ObjectId;
   items: ObjectId[];
   visibility: "public" | "private" | "auto";
@@ -12,6 +13,10 @@ const playlistSchema = new Schema<playlistDocument>(
     title: {
       type: String,
       required: true,
+    },
+    main: {
+      type: Schema.Types.ObjectId,
+      ref: "CardsCollection",
     },
     owner: {
       type: Schema.Types.ObjectId,
