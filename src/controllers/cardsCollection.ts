@@ -912,3 +912,5 @@ export const updateCorrectCards: RequestHandler = async (req, res) => {
     return;
   }
 };
+
+// HANDLE CORRECT CARDS
