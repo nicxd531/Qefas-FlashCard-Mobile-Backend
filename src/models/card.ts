@@ -6,6 +6,7 @@ export interface Icards {
   answer: string;
   owner: ObjectId;
   collectionId: ObjectId;
+  point: number;
 }
 const CardSchema = new Schema<Icards>(
   {
@@ -39,6 +40,10 @@ const CardSchema = new Schema<Icards>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    point: {
+      type: Number,
+      default: 10, // Default points for each card
     },
     collectionId: {
       type: Schema.Types.ObjectId,
