@@ -7,6 +7,7 @@ export interface CardsDataDocument<T = ObjectId> {
   historyId: ObjectId;
   user: ObjectId;
   points: number;
+  durationInSeconds: number;
   cards: ObjectId[];
   correctCards: ObjectId[];
 }
@@ -41,6 +42,10 @@ const CardDataSchema = new Schema<CardsDataDocument>(
       },
     ],
     points: {
+      type: Number,
+      default: 0, // Default points for each card
+    },
+    durationInSeconds: {
       type: Number,
       default: 0, // Default points for each card
     },

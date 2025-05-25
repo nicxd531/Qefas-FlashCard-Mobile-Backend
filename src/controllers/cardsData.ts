@@ -52,6 +52,7 @@ export const createCardsData: RequestHandler = async (req, res) => {
       cards,
       correctCards: [],
       points: 0,
+      durationInSeconds: 0,
     });
     res.status(201).json(cardsData);
   } catch (error) {
@@ -96,7 +97,14 @@ export const getCardsData: RequestHandler = async (req, res) => {
 // Update cards data by collectionId and historyId
 
 export const updateCardsData: RequestHandler = async (req, res) => {
-  const { collectionId, historyId, correctCards, cards, points } = req.body;
+  const {
+    collectionId,
+    historyId,
+    correctCards,
+    cards,
+    points,
+    durationInSeconds,
+  } = req.body;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
   const isValidHistory = await History.findById(historyId);
@@ -143,6 +151,7 @@ export const updateCardsData: RequestHandler = async (req, res) => {
         cards: reorderedCards,
         correctCards: correctCardsArray,
         points: points,
+        durationInSeconds: durationInSeconds,
       },
       { new: true } // Return the updated document
     );
