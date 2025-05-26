@@ -14,6 +14,7 @@ interface createCardsCollectionRequest extends RequestWithFiles {
     historyId: String;
     user: String;
     points: number;
+    progress: number;
     cards: String[];
     correctCards: String[];
   };
@@ -103,6 +104,7 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     correctCards,
     cards,
     points,
+    progress, 
     durationInSeconds,
   } = req.body;
   const user = req.user.id;
@@ -121,6 +123,7 @@ export const updateCardsData: RequestHandler = async (req, res) => {
       cards?: String[];
       correctCards?: String[];
       points?: number;
+      progress?: number;
       durationInSeconds?: number;
     } = {};
 
@@ -156,6 +159,9 @@ export const updateCardsData: RequestHandler = async (req, res) => {
 
     if (points !== undefined) {
       updateFields.points = points;
+    }
+    if (progress !== undefined) {
+      updateFields.progress = progress;
     }
 
     if (durationInSeconds !== undefined) {
