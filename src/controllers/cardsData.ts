@@ -113,52 +113,68 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     return;
   }
   if (!isValidHistory) {
-    res.status(400).json({ message: "Invalid collection ID." });
+    res.status(400).json({ message: "Invalid history ID." });
     return;
   }
   try {
-    // Ensure correctCards is an array
-    const correctCardsArray = Array.isArray(correctCards) ? correctCards : [];
+    const updateFields: {
+      cards?: String[];
+      correctCards?: String[];
+      points?: number;
+      durationInSeconds?: number;
+    } = {};
 
-    // Separate correct and incorrect cards
-    const correct = cards.filter((cardId: String) =>
-      correctCardsArray.includes(cardId)
-    );
-    const incorrect = cards.filter(
-      (cardId: String) => !correctCardsArray.includes(cardId)
-    );
+    if (correctCards !== undefined) {
+      const correctCardsArray = Array.isArray(correctCards) ? correctCards : [];
 
-    // Function to shuffle an array (Fisher-Yates shuffle)
-    const shuffleArray = (array: any[]) => {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    };
+      // Separate correct and incorrect cards
+      const correct = cards.filter((cardId: String) =>
+        correctCardsArray.includes(cardId)
+      );
+      const incorrect = cards.filter(
+        (cardId: String) => !correctCardsArray.includes(cardId)
+      );
 
-    // Shuffle both correct and incorrect cards
-    const shuffledCorrect = shuffleArray(correct);
-    const shuffledIncorrect = shuffleArray(incorrect);
+      // Function to shuffle an array (Fisher-Yates shuffle)
+      const shuffleArray = (array: any[]) => {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      };
 
-    // Combine shuffled incorrect cards first, then shuffled correct cards
-    const reorderedCards = shuffledIncorrect.concat(shuffledCorrect);
+      // Shuffle both correct and incorrect cards
+      const shuffledCorrect = shuffleArray(correct);
+      const shuffledIncorrect = shuffleArray(incorrect);
 
-    // Update the CardsData document
+      // Combine shuffled incorrect cards first, then shuffled correct cards
+      const reorderedCards = shuffledIncorrect.concat(shuffledCorrect);
+      updateFields.cards = reorderedCards;
+      updateFields.correctCards = correctCardsArray;
+    }
+
+    if (points !== undefined) {
+      updateFields.points = points;
+    }
+
+    if (durationInSeconds !== undefined) {
+      updateFields.durationInSeconds = durationInSeconds;
+    }
+
     const updatedCardsData = await CardsData.findOneAndUpdate(
       { user: user, collectionId: collectionId, historyId: historyId },
       {
-        cards: reorderedCards,
-        correctCards: correctCardsArray,
-        points: points,
-        durationInSeconds: durationInSeconds,
+        $set: updateFields,
       },
-      { new: true } // Return the updated document
+      { new: true }
     );
+
     if (!updatedCardsData) {
       res.status(404).json({ message: "Cards data not found." });
       return;
     }
+
     res.status(200).json(updatedCardsData);
     return;
   } catch (error) {
