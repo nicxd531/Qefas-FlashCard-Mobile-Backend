@@ -10,6 +10,8 @@ export interface CardsDataDocument<T = ObjectId> {
   durationInSeconds: number;
   cards: ObjectId[];
   correctCards: ObjectId[];
+  progress: number;
+
 }
 const CardDataSchema = new Schema<CardsDataDocument>(
   {
@@ -44,6 +46,10 @@ const CardDataSchema = new Schema<CardsDataDocument>(
     points: {
       type: Number,
       default: 0, // Default points for each card
+    },
+    progress:{
+      type: Number,
+      default: 0, // Default progress for each card
     },
     durationInSeconds: {
       type: Number,
