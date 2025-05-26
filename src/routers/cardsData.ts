@@ -12,7 +12,7 @@ router.post("/", mustAuth, createCardsData);
 // update cards data
 router.patch("/", mustAuth, updateCardsData);
 // get cards data
-router.get("/", mustAuth, getCardsData);
+router.get("/:historyId/:collectionId", mustAuth, getCardsData);
 // delete cards data
 router.delete("/", mustAuth, deleteCardsData);
 export default router;
