@@ -64,7 +64,8 @@ export const createCardsData: RequestHandler = async (req, res) => {
 // get cards data by collectionId and historyId
 
 export const getCardsData: RequestHandler = async (req, res) => {
-  const { collectionId, historyId } = req.body;
+  
+   const { collectionId, historyId }= req.params;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
   const isValidHistory = await History.findById(historyId);
