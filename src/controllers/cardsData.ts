@@ -107,6 +107,7 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     points,
     progress, 
     durationInSeconds,
+    previous
   } = req.body;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
@@ -120,13 +121,44 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     return;
   }
   try {
+  // Fetch the existing CardsData
+    const existingCardsData = await CardsData.findOne({
+      user: user,
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+
+    if (!existingCardsData) {
+      res.status(404).json({ message: "Cards data not found." });
+      return;
+    }
+
+    // Create an object to hold the updated fields, starting with the existing data
     const updateFields: {
       cards?: String[];
       correctCards?: String[];
       points?: number;
       progress?: number;
       durationInSeconds?: number;
-    } = {};
+      previous?: {
+        correctCards?: String[];
+        points?: number;
+        progress?: number;
+        durationInSeconds?: number;
+      };
+    } = {
+      cards: existingCardsData.cards.map(id => id.toString()),
+      correctCards: existingCardsData.correctCards.map(id => id.toString()),
+      points: existingCardsData.points,
+      progress: existingCardsData.progress,
+      durationInSeconds: existingCardsData.durationInSeconds,
+      previous: {
+        correctCards: existingCardsData.previous?.correctCards?.map(id => id.toString()),
+        points: existingCardsData.previous?.points,
+        progress: existingCardsData.previous?.progress,
+        durationInSeconds: existingCardsData.previous?.durationInSeconds,
+      },
+    };
 
     if (correctCards !== undefined) {
       const correctCardsArray = Array.isArray(correctCards) ? correctCards : [];
@@ -167,6 +199,27 @@ export const updateCardsData: RequestHandler = async (req, res) => {
 
     if (durationInSeconds !== undefined) {
       updateFields.durationInSeconds = durationInSeconds;
+    }
+      // Handle the nested 'previous' field
+    if (previous !== undefined) {
+      updateFields.previous = {
+        correctCards:
+          previous.correctCards !== undefined
+            ? previous.correctCards
+            : existingCardsData.previous?.correctCards,
+        points:
+          previous.points !== undefined
+            ? previous.points
+            : existingCardsData.previous?.points,
+        progress:
+          previous.progress !== undefined
+            ? previous.progress
+            : existingCardsData.previous?.progress,
+        durationInSeconds:
+          previous.durationInSeconds !== undefined
+            ? previous.durationInSeconds
+            : existingCardsData.previous?.durationInSeconds,
+      };
     }
 
     const updatedCardsData = await CardsData.findOneAndUpdate(
@@ -220,6 +273,40 @@ export const deleteCardsData: RequestHandler = async (req, res) => {
     return;
   } catch (error) {
     console.error("Error deleting cards data:", error);
+    res.status(500).json({ message: "Internal server error." });
+    return;
+  }
+};
+
+
+// get previous cards data by collectionId and historyId
+export const getPreviousCardsData: RequestHandler = async (req, res) => {
+   const { collectionId, historyId }= req.params;
+  const user = req.user.id;
+  const isValidCollection = await CardsCollection.findById(collectionId);
+  const isValidHistory = await History.findById(historyId);
+  if (!isValidCollection) {
+    res.status(400).json({ message: "Invalid collection ID." });
+    return;
+  }
+  if (!isValidHistory) {
+    res.status(400).json({ message: "Invalid collection ID." });
+    return;
+  }
+  try {
+    const cardsData = await CardsData.findOne({
+      user: user, // Use the logged-in user's ID
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+    if (!cardsData) {
+      res.status(404).json({ message: "Cards data not found." });
+      return;
+    }
+    res.status(200).json(cardsData.previous);
+    return;
+  } catch (error) {
+    console.error("Error fetching cards data:", error);
     res.status(500).json({ message: "Internal server error." });
     return;
   }

@@ -11,8 +11,61 @@ export interface CardsDataDocument<T = ObjectId> {
   cards: ObjectId[];
   correctCards: ObjectId[];
   progress: number;
+  previous:{
+    correctCards: ObjectId[];
+    points: number;
+    progress: number;
+    durationInSeconds: number;
+  }
 
 }
+
+//   {
+//     owner: {
+//       type: Schema.Types.ObjectId,
+//       ref: "User",
+//       required: true,
+//     },
+//     collectionId: {
+//       type: Schema.Types.ObjectId,
+//       ref: "CardsCollection",
+//       required: true,
+//     },
+//     historyId: {
+//       type: Schema.Types.ObjectId,
+//       ref: "CardsCollection",
+//       required: true,
+//       unique: true, // Ensure each historyId is unique
+//     },
+//     cards: [
+//       {
+//         type: Schema.Types.ObjectId,
+//         ref: "Cards",
+//       },
+//     ],
+//     correctCards: [
+//       {
+//         type: Schema.Types.ObjectId,
+//         ref: "Cards",
+//       },
+//     ],
+//     points: {
+//       type: Number,
+//       default: 0, // Default points for each card
+//     },
+//     progress:{
+//       type: Number,
+//       default: 0, // Default progress for each card
+//     },
+//     durationInSeconds: {
+//       type: Number,
+//       default: 0, // Default points for each card
+//     },
+//   },
+//   {
+//     timestamps: true,
+//   }
+// );
 const CardDataSchema = new Schema<CardsDataDocument>(
   {
     owner: {
@@ -29,7 +82,7 @@ const CardDataSchema = new Schema<CardsDataDocument>(
       type: Schema.Types.ObjectId,
       ref: "CardsCollection",
       required: true,
-      unique: true, // Ensure each historyId is unique
+      unique: true,
     },
     cards: [
       {
@@ -45,21 +98,41 @@ const CardDataSchema = new Schema<CardsDataDocument>(
     ],
     points: {
       type: Number,
-      default: 0, // Default points for each card
+      default: 0,
     },
-    progress:{
+    progress: {
       type: Number,
-      default: 0, // Default progress for each card
+      default: 0,
     },
     durationInSeconds: {
       type: Number,
-      default: 0, // Default points for each card
+      default: 0,
+    },
+    previous: {
+      correctCards: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "Cards",
+        },
+      ],
+      points: {
+        type: Number,
+        default: 0,
+      },
+      progress: {
+        type: Number,
+        default: 0,
+      },
+      durationInSeconds: {
+        type: Number,
+        default: 0,
+      },
     },
   },
   {
     timestamps: true,
   }
-);
+)
 
 const CardsData = models.CardsData || model("CardsData", CardDataSchema);
 export default CardsData as Model<CardsDataDocument>;
