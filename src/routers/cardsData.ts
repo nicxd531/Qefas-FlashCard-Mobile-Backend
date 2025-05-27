@@ -17,6 +17,6 @@ router.get("/:historyId/:collectionId", mustAuth, getCardsData);
 // delete cards data
 router.delete("/", mustAuth, deleteCardsData);
 // previous  cards data
-router.post("/previous", mustAuth, updateCardsData);
+router.patch("/previous", mustAuth, updateCardsData);
 router.get("/previous/:historyId/:collectionId", mustAuth, getPreviousCardsData);
 export default router;
