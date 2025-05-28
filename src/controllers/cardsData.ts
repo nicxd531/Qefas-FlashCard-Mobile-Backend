@@ -122,15 +122,25 @@ export const updateCardsData: RequestHandler = async (req, res) => {
   }
   try {
   // Fetch the existing CardsData
-    const existingCardsData = await CardsData.findOne({
+    let existingCardsData = await CardsData.findOne({
       user: user,
       collectionId: collectionId,
       historyId: historyId,
     });
 
     if (!existingCardsData) {
-      res.status(404).json({ message: "Cards data not found." });
-      return;
+   // Create new CardsData if it doesn't exist
+      existingCardsData = await CardsData.create({
+        user: user,
+        collectionId: collectionId,
+        historyId: historyId,
+        cards: [],
+        correctCards: [],
+        points: 0,
+        progress: 0,
+        durationInSeconds: 0,
+        previous: {}, // Or initialize with default values
+      });
     }
 
     // Create an object to hold the updated fields, starting with the existing data
