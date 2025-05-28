@@ -222,3 +222,41 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
   // console.log({ recentlyPlayed });
   res.json({ recentlyPlayed });
 };
+
+//  last history ID for a specific collection
+export const getLastHistoryIdForCollection: RequestHandler = async (
+  req,
+  res
+) => {
+  const { collectionId } = req.params;
+  const userId = req.user.id;
+  try {
+    const history = await History.findOne(
+      { owner: userId },
+      { all: { $slice: -1 } } // Get only the last element of the 'all' array
+    ).lean();
+    
+    if (!history || !history.all || history.all.length === 0) {
+      res.json({ historyId: null }); // No history found for the user
+      return
+    }
+    
+    // Filter the history entries to find the last one for the specified collection
+    const lastHistoryForCollection = history.all.filter(
+      (item) => item.cardsCollection.toString() === collectionId
+    )[0];
+    
+    if (!lastHistoryForCollection) {
+      res.json({ historyId: null }); // No history found for the collection
+      return
+    }
+    
+    res.json({ historyId: lastHistoryForCollection._id.toString() }); 
+    return
+    // Return the history ID
+  } catch (error) {
+    console.error("Error getting last history ID:", error);
+    res.status(500).json({ message: "Failed to retrieve history ID", success: false });
+    return 
+  }
+};
