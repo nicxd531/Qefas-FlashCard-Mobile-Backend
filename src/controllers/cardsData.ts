@@ -105,23 +105,35 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     correctCards,
     cards,
     points,
-    progress, 
+    progress,
     durationInSeconds,
-    previous
+    previous,
   } = req.body;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
-  const isValidHistory = await History.findById(historyId);
   if (!isValidCollection) {
     res.status(400).json({ message: "Invalid collection ID." });
     return;
   }
-  if (!isValidHistory) {
-    res.status(400).json({ message: "Invalid history ID." });
-    return;
-  }
+ 
+    // Validate historyId by checking if it exists in the user's history
+    const userHistory:any = await History.findOne({ owner: user });
+
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item:any) => item._id.toString() === historyId
+    );
+
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
   try {
-  // Fetch the existing CardsData
+    // Fetch the existing CardsData
     let existingCardsData = await CardsData.findOne({
       user: user,
       collectionId: collectionId,
@@ -129,9 +141,16 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     });
 
     if (!existingCardsData) {
-   // Create new CardsData if it doesn't exist
+      // Check if a CardsData document with this historyId already exists
+      const existingCardsDataWithHistoryId = await CardsData.findOne({ historyId: historyId });
+      if (existingCardsDataWithHistoryId) {
+        // Respond with an error if a document with this historyId already exists
+        res.status(400).json({ message: "A CardsData document with this historyId already exists." });
+        return 
+      }
+      // Create new CardsData if it doesn't exist
       existingCardsData = await CardsData.create({
-        user: user,
+        owner: user,
         collectionId: collectionId,
         historyId: historyId,
         cards: [],
@@ -233,11 +252,11 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     }
 
     const updatedCardsData = await CardsData.findOneAndUpdate(
-      { user: user, collectionId: collectionId, historyId: historyId },
+      { owner: user, collectionId: collectionId, historyId: historyId },
       {
         $set: updateFields,
       },
-      { new: true }
+      { new: true, upsert: true }
     );
 
     if (!updatedCardsData) {
@@ -271,7 +290,7 @@ export const deleteCardsData: RequestHandler = async (req, res) => {
   }
   try {
     const deletedCardsData = await CardsData.findOneAndDelete({
-      user: user,
+      owner: user,
       collectionId: collectionId,
       historyId: historyId,
     });
