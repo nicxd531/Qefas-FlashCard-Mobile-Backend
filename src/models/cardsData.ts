@@ -71,7 +71,6 @@ const CardDataSchema = new Schema<CardsDataDocument>(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     collectionId: {
       type: Schema.Types.ObjectId,
