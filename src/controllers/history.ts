@@ -224,39 +224,51 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
 };
 
 //  last history ID for a specific collection
+//  last history ID for a specific collection
 export const getLastHistoryIdForCollection: RequestHandler = async (
   req,
   res
 ) => {
   const { collectionId } = req.params;
   const userId = req.user.id;
+
   try {
-    const history = await History.findOne(
-      { owner: userId },
-      { all: { $slice: -1 } } // Get only the last element of the 'all' array
-    ).lean();
-    
+    const history = await History.findOne({ owner: userId }).lean();
+
     if (!history || !history.all || history.all.length === 0) {
       res.json({ historyId: null }); // No history found for the user
-      return
+      return 
     }
-    
-    // Filter the history entries to find the last one for the specified collection
-    const lastHistoryForCollection = history.all.filter(
+
+    // Filter history entries for the specified collection
+    const collectionHistories = history.all.filter(
       (item) => item.cardsCollection.toString() === collectionId
-    )[0];
-    
-    if (!lastHistoryForCollection) {
+    );
+
+    if (collectionHistories.length === 0) {
       res.json({ historyId: null }); // No history found for the collection
-      return
+      return 
     }
-    
-    res.json({ historyId: lastHistoryForCollection._id.toString() }); 
+
+    // Find the history entry closest to today's date
+    const today = new Date();
+    let closestHistory:any = collectionHistories[0];
+    let minDiff = Math.abs(today.getTime() - closestHistory.date.getTime());
+
+    for (let i = 1; i < collectionHistories.length; i++) {
+      const diff = Math.abs(today.getTime() - collectionHistories[i].date.getTime());
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestHistory = collectionHistories[i];
+      }
+    }
+
+    res.json({ historyId: closestHistory._id.toString() });
     return
-    // Return the history ID
   } catch (error) {
     console.error("Error getting last history ID:", error);
-    res.status(500).json({ message: "Failed to retrieve history ID", success: false });
-    return 
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve history ID", success: false });
   }
 };
