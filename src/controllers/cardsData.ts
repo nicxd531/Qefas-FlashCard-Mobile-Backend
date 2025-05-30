@@ -68,18 +68,29 @@ export const getCardsData: RequestHandler = async (req, res) => {
    const { collectionId, historyId }= req.params;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
-  const isValidHistory = await History.findById(historyId);
   if (!isValidCollection) {
     res.status(400).json({ message: "Invalid collection ID." });
     return;
   }
-  if (!isValidHistory) {
-    res.status(400).json({ message: "Invalid collection ID." });
-    return;
-  }
+   // Validate historyId by checking if it exists in the user's history
+    const userHistory:any = await History.findOne({ owner: user });
+
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item:any) => item._id.toString() === historyId
+    );
+
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
   try {
     const cardsData = await CardsData.findOne({
-      user: user, // Use the logged-in user's ID
+      owner: user, // Use the logged-in user's ID
       collectionId: collectionId,
       historyId: historyId,
     });
