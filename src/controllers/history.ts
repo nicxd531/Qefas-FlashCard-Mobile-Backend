@@ -1,6 +1,8 @@
 import { paginationQuery } from "#/@types/misc";
+import CardsCollection from "#/models/cardsCollection";
 import History, { historyType } from "#/models/history";
 import { RequestHandler } from "express";
+import mongoose from "mongoose";
 
 export const updateHistory: RequestHandler = async (req, res) => {
   const oldHistory = await History.findOne({
@@ -233,20 +235,43 @@ export const getLastHistoryIdForCollection: RequestHandler = async (
   const userId = req.user.id;
 
   try {
-    const history = await History.findOne({ owner: userId }).lean();
+    let history :any = await History.findOne({ owner: userId }).lean();
 
     if (!history || !history.all || history.all.length === 0) {
-      res.json({ historyId: null }); // No history found for the user
-      return 
+     // No history found for the user, create a new history
+      const newHistory = await History.create({
+        owner: userId,
+        all: [], // Initialize with an empty array
+      });
+      history = newHistory.toObject(); // Convert to plain JavaScript object
     }
 
     // Filter history entries for the specified collection
     const collectionHistories = history.all.filter(
-      (item) => item.cardsCollection.toString() === collectionId
+      (item:any) => item.cardsCollection.toString() === collectionId
     );
 
     if (collectionHistories.length === 0) {
-      res.json({ historyId: null }); // No history found for the collection
+     // No history found for the collection, create a new history entry
+      const cardsCollection = await CardsCollection.findById(collectionId);
+      if (!cardsCollection) {
+        res.status(400).json({ message: "Invalid cardsCollection ID", success: false });
+        return 
+      }
+
+      const newHistoryEntry : any = {
+        cardsCollection: new mongoose.Types.ObjectId(collectionId),
+        date: new Date(),
+        progress: 0, // Initialize with a default progress
+        points: 0, // Initialize with default points
+      };
+
+      await History.findOneAndUpdate(
+        { owner: userId },
+        { $push: { all: newHistoryEntry } }
+      );
+
+      res.json({ historyId: newHistoryEntry._id  }); // Respond with the new history ID
       return 
     }
 
