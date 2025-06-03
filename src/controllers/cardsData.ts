@@ -351,3 +351,62 @@ export const getPreviousCardsData: RequestHandler = async (req, res) => {
     return;
   }
 };
+
+
+// Combined getOrCreateCardsData function
+export const getOrCreateCardsData: RequestHandler = async (req, res) => {
+  const { collectionId, historyId } = req.params;
+  const user = req.user.id;
+
+  try {
+    // Validate collectionId
+    const isValidCollection = await CardsCollection.findById(collectionId);
+    if (!isValidCollection) {
+      res.status(400).json({ message: "Invalid collection ID." });
+      return 
+    }
+
+    // Validate historyId
+    const userHistory: any = await History.findOne({ owner: user });
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item: any) => item._id.toString() === historyId
+    );
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
+
+    // Try to find existing CardsData
+    let cardsData = await CardsData.findOne({
+      owner: user,
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+
+    if (!cardsData) {
+      // If CardsData doesn't exist, create it
+      cardsData = await CardsData.create({
+        owner: user,
+        collectionId: collectionId,
+        historyId: historyId,
+        cards: [],
+        correctCards: [],
+        points: 0,
+        durationInSeconds: 0,
+      });
+      res.status(201).json(cardsData); // Return 201 Created
+      return 
+    }
+
+    // If CardsData exists, return it
+    res.status(200).json(cardsData);
+  } catch (error) {
+    console.error("Error fetching/creating cards data:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
