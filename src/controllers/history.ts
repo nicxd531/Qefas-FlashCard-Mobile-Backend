@@ -1,6 +1,8 @@
 import { paginationQuery } from "#/@types/misc";
+import CardsCollection from "#/models/cardsCollection";
 import History, { historyType } from "#/models/history";
 import { RequestHandler } from "express";
+import mongoose from "mongoose";
 
 export const updateHistory: RequestHandler = async (req, res) => {
   const oldHistory = await History.findOne({
@@ -223,7 +225,7 @@ export const getRecentlyPlayed: RequestHandler = async (req, res) => {
   res.json({ recentlyPlayed });
 };
 
-//  last history ID for a specific collection
+
 //  last history ID for a specific collection
 export const getLastHistoryIdForCollection: RequestHandler = async (
   req,
@@ -233,42 +235,84 @@ export const getLastHistoryIdForCollection: RequestHandler = async (
   const userId = req.user.id;
 
   try {
-    const history = await History.findOne({ owner: userId }).lean();
+    let history :any = await History.findOne({ owner: userId })
 
     if (!history || !history.all || history.all.length === 0) {
-      res.json({ historyId: null }); // No history found for the user
-      return 
+      // No history found for the user, create a new history
+      const newHistory = await History.create({
+        owner: userId,
+        last: {
+          cardsCollection: new mongoose.Types.ObjectId(collectionId),
+          date: new Date(),
+          progress: 0,
+          points: 0,
+        },
+        all: [], // Initialize with an empty array
+      });
+      history = newHistory.toObject(); // Convert to plain JavaScript object
     }
 
     // Filter history entries for the specified collection
-    const collectionHistories = history.all.filter(
-      (item) => item.cardsCollection.toString() === collectionId
+    const collectionHistories :any = history.all.filter(
+      (item:any) => item.cardsCollection?.toString() === collectionId
     );
 
     if (collectionHistories.length === 0) {
-      res.json({ historyId: null }); // No history found for the collection
-      return 
+      // No history found for the collection, create a new history entry
+      const cardsCollection = await CardsCollection.findById(collectionId);
+      if (!cardsCollection) {
+        res.status(400).json({ message: "Invalid cardsCollection ID", success: false });
+        return 
+      }
+
+      const newHistoryEntry: any = {
+        cardsCollection: new mongoose.Types.ObjectId(collectionId),
+        date: new Date(),
+        progress: 0, // Initialize with a default progress
+        points: 0, // Initialize with default points
+      };
+
+      // Find the user's history document
+      const userHistory = await History.findOne({ owner: userId });
+
+      if (!userHistory) {
+        res.status(404).json({
+          message: "User history not found",
+          success: false,
+        });
+        return 
+      }
+
+      // Push the new history entry to the 'all' array
+      userHistory.all.push(newHistoryEntry);
+      userHistory.last = newHistoryEntry;
+
+      // Save the updated history document
+    const usersNew: any=  await userHistory.save();
+  
+
+      res.json({ historyId:usersNew.all[0]._id }); // Respond with the new history ID
+      return;
     }
 
     // Find the history entry closest to today's date
     const today = new Date();
-    let closestHistory:any = collectionHistories[0];
+    let closestHistory = collectionHistories[0];
     let minDiff = Math.abs(today.getTime() - closestHistory.date.getTime());
 
     for (let i = 1; i < collectionHistories.length; i++) {
-      const diff = Math.abs(today.getTime() - collectionHistories[i].date.getTime());
+      const diff = Math.abs(
+        today.getTime() - collectionHistories[i].date.getTime()
+      );
       if (diff < minDiff) {
         minDiff = diff;
         closestHistory = collectionHistories[i];
       }
     }
-
     res.json({ historyId: closestHistory._id.toString() });
-    return
+    return;
   } catch (error) {
     console.error("Error getting last history ID:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve history ID", success: false });
+    res.status(500).json({ message: "Failed to retrieve history ID", success: false });
   }
 };
