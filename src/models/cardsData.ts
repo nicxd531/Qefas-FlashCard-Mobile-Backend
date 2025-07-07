@@ -20,52 +20,6 @@ export interface CardsDataDocument<T = ObjectId> {
 
 }
 
-//   {
-//     owner: {
-//       type: Schema.Types.ObjectId,
-//       ref: "User",
-//       required: true,
-//     },
-//     collectionId: {
-//       type: Schema.Types.ObjectId,
-//       ref: "CardsCollection",
-//       required: true,
-//     },
-//     historyId: {
-//       type: Schema.Types.ObjectId,
-//       ref: "CardsCollection",
-//       required: true,
-//       unique: true, // Ensure each historyId is unique
-//     },
-//     cards: [
-//       {
-//         type: Schema.Types.ObjectId,
-//         ref: "Cards",
-//       },
-//     ],
-//     correctCards: [
-//       {
-//         type: Schema.Types.ObjectId,
-//         ref: "Cards",
-//       },
-//     ],
-//     points: {
-//       type: Number,
-//       default: 0, // Default points for each card
-//     },
-//     progress:{
-//       type: Number,
-//       default: 0, // Default progress for each card
-//     },
-//     durationInSeconds: {
-//       type: Number,
-//       default: 0, // Default points for each card
-//     },
-//   },
-//   {
-//     timestamps: true,
-//   }
-// );
 const CardDataSchema = new Schema<CardsDataDocument>(
   {
     owner: {

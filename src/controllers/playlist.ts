@@ -5,6 +5,7 @@ import {
 } from "#/@types/collection";
 import CardsCollection from "#/models/cardsCollection";
 import Playlist from "#/models/playlist";
+import PlaylistCollection from "#/models/playlistCollection";
 import { RequestHandler } from "express";
 import { isValidObjectId, Types } from "mongoose";
 import { array } from "yup";
@@ -16,8 +17,8 @@ export const createPlaylist: RequestHandler = async (
   const { title, resId, visibility } = req.body;
   const ownerId = req.user.id;
   if (resId) {
-    const cardCollection = await CardsCollection.findById(resId);
-    if (!CardsCollection) {
+    const cardsCollection = await CardsCollection.findById(resId);
+    if (!cardsCollection) {
       res.status(404).json({
         error: "collection not found ",
         message: "collection does not exit",
@@ -175,7 +176,7 @@ export const updatePlaylist: RequestHandler = async (
     let newCollection;
     // 6. Create a new collection with the playlist's title and shuffled cards
     if (!updatedPlaylist?.main) {
-      newCollection = new CardsCollection({
+      newCollection = new PlaylistCollection({
         title: title,
         description: `Auto-generated collection from ${title} playlist`,
         poster: { url: posterUrl },
@@ -185,14 +186,14 @@ export const updatePlaylist: RequestHandler = async (
       });
       await newCollection.save();
     } else {
-      newCollection = await CardsCollection.findByIdAndUpdate(
+      newCollection = await PlaylistCollection.findByIdAndUpdate(
         updatedPlaylist.main,
         { cards: shuffledCards.map((card) => card._id) },
         { new: true }
       );
     }
 
-    const locatedCollection = await CardsCollection.findById(
+    const locatedCollection = await PlaylistCollection.findById(
       newCollection?._id
     );
 
@@ -227,6 +228,18 @@ export const removePlaylist: RequestHandler = async (req, res) => {
       .status(422)
       .json({ error: "invalid playlist id!", message: "invalid playlist id" });
   }
+  const playlist = await Playlist.findOne({
+      _id: playlistId,
+      owner: req.user.id,
+    });
+    if(playlist?.main) {
+      // delete the main collection for the playlist 
+     await PlaylistCollection.findOneAndDelete(playlist.main);
+    }else if (!playlist) {
+    res.status(404).json({
+      error: "playlist not found!",
+      message: "the requested playlist does not exist",
+    });}
 
   if (all === "yes") {
     const playlist = await Playlist.findOneAndDelete({
