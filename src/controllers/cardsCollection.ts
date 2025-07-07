@@ -12,6 +12,7 @@ import User from "#/models/User";
 import axios from "axios";
 import { HUGGING_FACE_API_KEY2, OPENAI_API_KEY } from "#/utils/variables";
 import { url } from "inspector";
+import PlaylistCollection from "#/models/playlistCollection";
 
 interface createCardsCollectionRequest extends RequestWithFiles {
   body: {
@@ -481,6 +482,35 @@ export const getCollectionWithCards: RequestHandler = async (req, res) => {
 
   try {
     const collection = await CardsCollection.findById(collectionId)
+      .populate({
+        path: "cards",
+        select: "_id answer question collectionId",
+      })
+      .populate<PopulateFavList>({
+        path: "owner",
+        select: "name email followers followings avatar verified _id", // Specify the fields you want to select
+      }); // Populate the owner field;
+
+    if (!collection) {
+      res.status(404).json({ error: "Collection not found" });
+      return;
+    }
+
+    res.json(collection);
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+export const getPlaylistCollectionWithCards: RequestHandler = async (req, res) => {
+  const { collectionId } = req.params;
+
+  if (!collectionId) {
+    res.status(400).json({ error: "Collection ID is required" });
+    return;
+  }
+
+  try {
+    const collection = await PlaylistCollection.findById(collectionId)
       .populate({
         path: "cards",
         select: "_id answer question collectionId",
