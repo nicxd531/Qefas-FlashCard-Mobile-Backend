@@ -2,7 +2,7 @@ import { Model, model, models, ObjectId, Schema } from "mongoose";
 import { categories, categoriesTypes } from "./cards_category";
 import { number, object, string } from "yup";
 
-export interface CardsCollectionDocument<T = ObjectId> {
+export interface PlaylistCollectionDocument<T = ObjectId> {
   _id: ObjectId;
   title: string;
   description?: string;
@@ -20,7 +20,7 @@ export interface CardsCollectionDocument<T = ObjectId> {
   createdAt: Date;
 }
 
-const cardsCollectionSchema = new Schema<CardsCollectionDocument>(
+const playlistCollectionSchema = new Schema<PlaylistCollectionDocument>(
   {
     title: {
       type: String,
@@ -79,5 +79,6 @@ const cardsCollectionSchema = new Schema<CardsCollectionDocument>(
   }
 );
 
-const CardsCollection = models.CardsCollection || model("CardsCollection", cardsCollectionSchema);
-export default CardsCollection as Model<CardsCollectionDocument>;
+const PlaylistCollection =
+  models.PlaylistCollection || model("PlaylistCollection", playlistCollectionSchema);
+export default PlaylistCollection as Model<PlaylistCollectionDocument>;

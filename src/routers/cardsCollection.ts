@@ -11,6 +11,7 @@ import {
   getCollectionLikes,
   getCollectionWithCards,
   getLatestCollection,
+  getPlaylistCollectionWithCards,
   getPublicCollectionsCategories,
   getSuggestedCollections,
   handleLikeCollection,
@@ -69,6 +70,7 @@ router.patch(
   updateCard
 );
 router.get("/:collectionId/cards", getCollectionWithCards);
+router.get("/playlistCollection/:collectionId", getPlaylistCollectionWithCards);
 router.get("/latest-collection", getLatestCollection);
 router.get("/suggested-collections", mustAuth, getSuggestedCollections);
 router.post("/:collectionId/like", mustAuth, handleLikeCollection);
