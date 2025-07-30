@@ -2,6 +2,8 @@ import {
   createCardsData,
   deleteCardsData,
   getCardsData,
+  getOrCreateCardsData,
+  getPreviousCardsData,
   updateCardsData,
 } from "#/controllers/cardsData";
 import { mustAuth } from "#/middleware/auth";
@@ -12,7 +14,10 @@ router.post("/", mustAuth, createCardsData);
 // update cards data
 router.patch("/", mustAuth, updateCardsData);
 // get cards data
-router.get("/:historyId/:collectionId", mustAuth, getCardsData);
+router.get("/:historyId/:collectionId", mustAuth, getOrCreateCardsData);
 // delete cards data
 router.delete("/", mustAuth, deleteCardsData);
+// previous  cards data
+router.patch("/previous", mustAuth, updateCardsData);
+router.get("/previous/:historyId/:collectionId", mustAuth, getPreviousCardsData);
 export default router;

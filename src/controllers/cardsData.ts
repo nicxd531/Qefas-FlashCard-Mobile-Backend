@@ -68,18 +68,29 @@ export const getCardsData: RequestHandler = async (req, res) => {
    const { collectionId, historyId }= req.params;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
-  const isValidHistory = await History.findById(historyId);
   if (!isValidCollection) {
     res.status(400).json({ message: "Invalid collection ID." });
     return;
   }
-  if (!isValidHistory) {
-    res.status(400).json({ message: "Invalid collection ID." });
-    return;
-  }
+   // Validate historyId by checking if it exists in the user's history
+    const userHistory:any = await History.findOne({ owner: user });
+
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item:any) => item._id.toString() === historyId
+    );
+
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
   try {
     const cardsData = await CardsData.findOne({
-      user: user, // Use the logged-in user's ID
+      owner: user, // Use the logged-in user's ID
       collectionId: collectionId,
       historyId: historyId,
     });
@@ -105,28 +116,89 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     correctCards,
     cards,
     points,
-    progress, 
+    progress,
     durationInSeconds,
+    previous,
   } = req.body;
   const user = req.user.id;
   const isValidCollection = await CardsCollection.findById(collectionId);
-  const isValidHistory = await History.findById(historyId);
   if (!isValidCollection) {
     res.status(400).json({ message: "Invalid collection ID." });
     return;
   }
-  if (!isValidHistory) {
-    res.status(400).json({ message: "Invalid history ID." });
-    return;
-  }
+ 
+    // Validate historyId by checking if it exists in the user's history
+    const userHistory:any = await History.findOne({ owner: user });
+
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item:any) => item._id.toString() === historyId
+    );
+
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
   try {
+    // Fetch the existing CardsData
+    let existingCardsData = await CardsData.findOne({
+      user: user,
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+
+    if (!existingCardsData) {
+      // Check if a CardsData document with this historyId already exists
+      const existingCardsDataWithHistoryId = await CardsData.findOne({ historyId: historyId });
+      if (existingCardsDataWithHistoryId) {
+        // Respond with an error if a document with this historyId already exists
+        res.status(400).json({ message: "A CardsData document with this historyId already exists." });
+        return 
+      }
+      // Create new CardsData if it doesn't exist
+      existingCardsData = await CardsData.create({
+        owner: user,
+        collectionId: collectionId,
+        historyId: historyId,
+        cards: [],
+        correctCards: [],
+        points: 0,
+        progress: 0,
+        durationInSeconds: 0,
+        previous: {}, // Or initialize with default values
+      });
+    }
+
+    // Create an object to hold the updated fields, starting with the existing data
     const updateFields: {
       cards?: String[];
       correctCards?: String[];
       points?: number;
       progress?: number;
       durationInSeconds?: number;
-    } = {};
+      previous?: {
+        correctCards?: String[];
+        points?: number;
+        progress?: number;
+        durationInSeconds?: number;
+      };
+    } = {
+      cards: existingCardsData.cards.map(id => id.toString()),
+      correctCards: existingCardsData.correctCards.map(id => id.toString()),
+      points: existingCardsData.points,
+      progress: existingCardsData.progress,
+      durationInSeconds: existingCardsData.durationInSeconds,
+      previous: {
+        correctCards: existingCardsData.previous?.correctCards?.map(id => id.toString()),
+        points: existingCardsData.previous?.points,
+        progress: existingCardsData.previous?.progress,
+        durationInSeconds: existingCardsData.previous?.durationInSeconds,
+      },
+    };
 
     if (correctCards !== undefined) {
       const correctCardsArray = Array.isArray(correctCards) ? correctCards : [];
@@ -168,13 +240,34 @@ export const updateCardsData: RequestHandler = async (req, res) => {
     if (durationInSeconds !== undefined) {
       updateFields.durationInSeconds = durationInSeconds;
     }
+      // Handle the nested 'previous' field
+    if (previous !== undefined) {
+      updateFields.previous = {
+        correctCards:
+          previous.correctCards !== undefined
+            ? previous.correctCards
+            : existingCardsData.previous?.correctCards,
+        points:
+          previous.points !== undefined
+            ? previous.points
+            : existingCardsData.previous?.points,
+        progress:
+          previous.progress !== undefined
+            ? previous.progress
+            : existingCardsData.previous?.progress,
+        durationInSeconds:
+          previous.durationInSeconds !== undefined
+            ? previous.durationInSeconds
+            : existingCardsData.previous?.durationInSeconds,
+      };
+    }
 
     const updatedCardsData = await CardsData.findOneAndUpdate(
-      { user: user, collectionId: collectionId, historyId: historyId },
+      { owner: user, collectionId: collectionId, historyId: historyId },
       {
         $set: updateFields,
       },
-      { new: true }
+      { new: true, upsert: true }
     );
 
     if (!updatedCardsData) {
@@ -208,7 +301,7 @@ export const deleteCardsData: RequestHandler = async (req, res) => {
   }
   try {
     const deletedCardsData = await CardsData.findOneAndDelete({
-      user: user,
+      owner: user,
       collectionId: collectionId,
       historyId: historyId,
     });
@@ -222,5 +315,98 @@ export const deleteCardsData: RequestHandler = async (req, res) => {
     console.error("Error deleting cards data:", error);
     res.status(500).json({ message: "Internal server error." });
     return;
+  }
+};
+
+
+// get previous cards data by collectionId and historyId
+export const getPreviousCardsData: RequestHandler = async (req, res) => {
+   const { collectionId, historyId }= req.params;
+  const user = req.user.id;
+  const isValidCollection = await CardsCollection.findById(collectionId);
+  const isValidHistory = await History.findById(historyId);
+  if (!isValidCollection) {
+    res.status(400).json({ message: "Invalid collection ID." });
+    return;
+  }
+  if (!isValidHistory) {
+    res.status(400).json({ message: "Invalid collection ID." });
+    return;
+  }
+  try {
+    const cardsData = await CardsData.findOne({
+      user: user, // Use the logged-in user's ID
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+    if (!cardsData) {
+      res.status(404).json({ message: "Cards data not found." });
+      return;
+    }
+    res.status(200).json(cardsData.previous);
+    return;
+  } catch (error) {
+    console.error("Error fetching cards data:", error);
+    res.status(500).json({ message: "Internal server error." });
+    return;
+  }
+};
+
+
+// Combined getOrCreateCardsData function
+export const getOrCreateCardsData: RequestHandler = async (req, res) => {
+  const { collectionId, historyId } = req.params;
+  const user = req.user.id;
+
+  try {
+    // Validate collectionId
+    const isValidCollection = await CardsCollection.findById(collectionId);
+    if (!isValidCollection) {
+      res.status(400).json({ message: "Invalid collection ID." });
+      return 
+    }
+
+    // Validate historyId
+    const userHistory: any = await History.findOne({ owner: user });
+    if (!userHistory || !userHistory.all) {
+      res.status(400).json({ message: "History not found for user" });
+      return 
+    }
+
+    const historyIdExists = userHistory.all.some(
+      (item: any) => item._id.toString() === historyId
+    );
+    if (!historyIdExists) {
+      res.status(400).json({ message: "Invalid history ID or user does not own this history." });
+      return 
+    }
+
+    // Try to find existing CardsData
+    let cardsData = await CardsData.findOne({
+      owner: user,
+      collectionId: collectionId,
+      historyId: historyId,
+    });
+
+    if (!cardsData) {
+      // If CardsData doesn't exist, create it
+      cardsData = await CardsData.create({
+        owner: user,
+        collectionId: collectionId,
+        historyId: historyId,
+        cards: [],
+        correctCards: [],
+        points: 0,
+        durationInSeconds: 0,
+      });
+      res.status(201).json(cardsData); // Return 201 Created
+      return 
+    }
+
+    // If CardsData exists, return it
+    res.status(200).json(cardsData);
+  } catch (error) {
+    console.error("Error fetching/creating cards data:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 };
