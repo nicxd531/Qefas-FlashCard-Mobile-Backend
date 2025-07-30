@@ -33,14 +33,14 @@ export const create: RequestHandler = async (req: CreateUser, res) => {
     return;
   }
   //   create user
-  const user = await User.create({ email, password, name });
+  const user = await User.create({ email, password, name,verified:true  });
   //   send verification email
-  const token = generateToken();
-  await emailVerificationToken.create({
-    owner: user._id,
-    token,
-  });
-  sendVerificationMail(token, { name, email, userId: user._id.toString() });
+  // const token = generateToken();
+  // await emailVerificationToken.create({
+  //   owner: user._id,
+  //   token,
+  // });
+  // sendVerificationMail(token, { name, email, userId: user._id.toString() });
   res.status(201).json({ user: { id: user._id, name, email } });
 };
 // function for verifying email
